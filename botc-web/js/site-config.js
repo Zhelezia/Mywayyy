@@ -12,15 +12,15 @@ const SITE_CONFIG = {
     // Get these from: Supabase Dashboard > Settings > API
     // Leave as-is to use demo mode with sample data.
 
-    supabaseUrl: 'YOUR_SUPABASE_URL',           // e.g., 'https://abcdefgh.supabase.co'
-    supabaseAnonKey: 'YOUR_SUPABASE_ANON_KEY',   // The "anon public" key
+    supabaseUrl: 'https://ptgbxknmdfixscqrikxk.supabase.co/',           // e.g., 'https://abcdefgh.supabase.co'
+    supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Z2J4a25tZGZpeHNjcXJpa3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMDQzMDcsImV4cCI6MjEwNjg4MDMwN30.Y1kQWgGLo-Buq_T4AHGUrvbae9UsDN03YOco2gqhyuk',   // The "anon public" key
 
     // ==========================================
     // OPTIONAL: Customize Your Site
     // ==========================================
 
     // Community name shown in the header
-    communityName: 'Blood on the Clocktower',
+    communityName: 'Dubki BOTC',
 
     // Minimum games a player needs to appear on the leaderboard
     minGamesForLeaderboard: 1,
