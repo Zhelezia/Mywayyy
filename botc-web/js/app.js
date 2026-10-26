@@ -6,6 +6,7 @@ import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js';
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js';
 import { initGameEntry, updatePlayerNames } from './gameEntry.js';
 import { categorizeScript, setScriptCategories } from './config.js';
+import { filterGames, getFilterOptions } from './leaderboardFilters.mjs';
 import SITE_CONFIG from './site-config.js';
 
 // Global state
@@ -23,6 +24,12 @@ const tableBodyEl = document.getElementById('leaderboard-body');
 const gameRangeInput = document.getElementById('game-range');
 const clearRangeBtn = document.getElementById('clear-range');
 const gameTypeFilterEl = document.getElementById('game-type-filter');
+const scriptFilterEl = document.getElementById('script-filter');
+const storytellerFilterEl = document.getElementById('storyteller-filter');
+const playerFilterEl = document.getElementById('player-filter');
+const roleFilterEl = document.getElementById('role-filter');
+const resetFiltersBtn = document.getElementById('reset-leaderboard-filters');
+const filterResultCountEl = document.getElementById('filter-result-count');
 
 // Stats elements
 const totalGamesEl = document.getElementById('total-games');
@@ -65,6 +72,7 @@ async function init() {
 
         // Fetch game data
         gameLog = await fetchGames();
+        populateLeaderboardFilters();
 
         // Calculate ELO ratings based on current filter
         recalcForFilter();
@@ -153,6 +161,7 @@ async function refreshData() {
 
         // Refetch games
         gameLog = await fetchGames();
+        populateLeaderboardFilters();
 
         // Recalculate ELO ratings based on current filter
         recalcForFilter();
@@ -170,13 +179,49 @@ async function refreshData() {
 }
 
 /**
- * Filter games by the current game type filter.
+ * Filter games using all selected leaderboard filters.
  * @returns {Array} Filtered game log
  */
 function getFilteredGames() {
-    if (currentGameTypeFilter === 'all') return gameLog;
-    const targetCategory = currentGameTypeFilter === 'normal' ? 'Normal' : 'Teensyville';
-    return gameLog.filter(g => categorizeScript(g.game_mode) === targetCategory);
+    return filterGames(gameLog, {
+        gameType: currentGameTypeFilter,
+        script: scriptFilterEl?.value || '',
+        storyteller: storytellerFilterEl?.value || '',
+        player: playerFilterEl?.value || '',
+        role: roleFilterEl?.value || '',
+    }, categorizeScript);
+}
+
+/**
+ * Fill filter choices from the loaded game history, preserving valid selections.
+ */
+function populateLeaderboardFilters() {
+    const options = getFilterOptions(gameLog);
+    setFilterOptions(scriptFilterEl, options.scripts, 'All scripts');
+    setFilterOptions(storytellerFilterEl, options.storytellers, 'All storytellers');
+    setFilterOptions(playerFilterEl, options.players, 'Any player', formatPlayerName);
+    setFilterOptions(roleFilterEl, options.roles, 'Any role', formatPlayerName);
+}
+
+function setFilterOptions(selectEl, values, placeholder, format = value => value) {
+    if (!selectEl) return;
+
+    const selectedValue = selectEl.value;
+    selectEl.replaceChildren(new Option(placeholder, ''));
+    values.forEach(value => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = format(value);
+        selectEl.appendChild(option);
+    });
+    selectEl.value = values.includes(selectedValue) ? selectedValue : '';
+}
+
+function updateFilterResultCount() {
+    if (!filterResultCountEl) return;
+    const filteredGames = getFilteredGames();
+    const playerLabel = leaderboard.length === 1 ? 'player ranked' : 'players ranked';
+    filterResultCountEl.textContent = `Showing ${filteredGames.length} of ${gameLog.length} games · ${leaderboard.length} ${playerLabel}`;
 }
 
 /**
@@ -186,6 +231,7 @@ function recalcForFilter() {
     const filteredGames = getFilteredGames();
     players = recalcAll(filteredGames);
     leaderboard = getLeaderboard(players);
+    updateFilterResultCount();
 }
 
 /**
@@ -199,14 +245,24 @@ function updateStatsSummary() {
     if (totalGames === 0) {
         totalGamesEl.textContent = 0;
         totalPlayersEl.textContent = 0;
+        goodWinsEl.textContent = '0%';
+        evilWinsEl.textContent = '0%';
+        if (goodWinsCountEl) goodWinsCountEl.textContent = '0';
+        if (evilWinsCountEl) evilWinsCountEl.textContent = '0';
         if (winBarGoodEl) winBarGoodEl.style.display = 'none';
         if (winBarEvilEl) winBarEvilEl.style.display = 'none';
-        if (noGamesMsg) noGamesMsg.style.display = 'block';
+        if (noGamesMsg) {
+            noGamesMsg.textContent = gameLog.length ? 'No games match the selected filters' : 'No games logged yet';
+            noGamesMsg.style.display = 'block';
+        }
         return;
     }
 
     // Hide message
-    if (noGamesMsg) noGamesMsg.style.display = 'none';
+    if (noGamesMsg) {
+        noGamesMsg.textContent = 'No games logged yet';
+        noGamesMsg.style.display = 'none';
+    }
 
     const goodWins = filteredGames.filter(g => g.winning_team === 'Good').length;
     const evilWins = filteredGames.filter(g => g.winning_team === 'Evil').length;
@@ -404,7 +460,7 @@ function setupEventListeners() {
         renderLeaderboard();
     });
 
-    // Game type filter
+    // Recalculate all stats and ratings whenever a game filter changes.
     if (gameTypeFilterEl) {
         gameTypeFilterEl.addEventListener('change', () => {
             currentGameTypeFilter = gameTypeFilterEl.value;
@@ -413,6 +469,26 @@ function setupEventListeners() {
             renderLeaderboard();
         });
     }
+
+    [scriptFilterEl, storytellerFilterEl, playerFilterEl, roleFilterEl].forEach(selectEl => {
+        selectEl?.addEventListener('change', () => {
+            recalcForFilter();
+            updateStatsSummary();
+            renderLeaderboard();
+        });
+    });
+
+    resetFiltersBtn?.addEventListener('click', () => {
+        if (gameTypeFilterEl) gameTypeFilterEl.value = 'all';
+        currentGameTypeFilter = 'all';
+        [scriptFilterEl, storytellerFilterEl, playerFilterEl, roleFilterEl].forEach(selectEl => {
+            if (selectEl) selectEl.value = '';
+        });
+        gameRangeInput.value = '';
+        recalcForFilter();
+        updateStatsSummary();
+        renderLeaderboard();
+    });
 
     // Column sorting
     document.querySelectorAll('.leaderboard-table th[data-sort]').forEach(th => {

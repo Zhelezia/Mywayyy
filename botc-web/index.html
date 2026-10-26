@@ -120,11 +120,11 @@
                 <div class="table-header">
                     <h2>Player Rankings</h2>
                     <div class="controls">
-                        <label for="game-type-filter">Games:</label>
+                        <label for="game-type-filter">Type:</label>
                         <select id="game-type-filter">
                             <option value="all">All Games</option>
-                            <option value="normal">Normal Only</option>
-                            <option value="teensyville">Teensyville Only</option>
+                            <option value="normal">Full Scripts</option>
+                            <option value="teensyville">Teensyville</option>
                         </select>
                         <label for="game-range">Range:</label>
                         <input type="text" id="game-range" placeholder="e.g., 67-69">
@@ -132,6 +132,40 @@
                         <button class="add-game-btn" id="add-game-btn">+ Add Game</button>
                         <button class="edit-game-btn secondary" id="edit-game-btn">Edit Game</button>
                     </div>
+                </div>
+
+                <div class="leaderboard-filter-panel">
+                    <div class="leaderboard-filters">
+                        <div class="leaderboard-filter">
+                            <label for="script-filter">Script</label>
+                            <select id="script-filter">
+                                <option value="">All scripts</option>
+                            </select>
+                        </div>
+                        <div class="leaderboard-filter">
+                            <label for="storyteller-filter">Storyteller</label>
+                            <select id="storyteller-filter">
+                                <option value="">All storytellers</option>
+                            </select>
+                        </div>
+                        <div class="leaderboard-filter">
+                            <label for="player-filter">Player in game</label>
+                            <select id="player-filter">
+                                <option value="">Any player</option>
+                            </select>
+                        </div>
+                        <div class="leaderboard-filter">
+                            <label for="role-filter">Role in play</label>
+                            <select id="role-filter">
+                                <option value="">Any role</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="leaderboard-filter-footer">
+                        <p id="filter-result-count" aria-live="polite"></p>
+                        <button class="secondary" id="reset-leaderboard-filters" type="button">Reset filters</button>
+                    </div>
+                    <p class="filter-help">Filters combine. Player and role filters include games where that player or role appeared; ratings are recalculated for everyone in the matching games.</p>
                 </div>
 
                 <table class="leaderboard-table">
