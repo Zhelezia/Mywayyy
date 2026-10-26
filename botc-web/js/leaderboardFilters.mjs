@@ -10,6 +10,17 @@ function rolesForPlayer(player) {
     return new Set([...history, player.role].filter(role => typeof role === 'string' && role.trim()));
 }
 
+function roleKey(role) {
+    return String(role || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function roleFilterLabel(role) {
+    // Historical records use both "Al-hadikhia" and "Al-Hadikhia".
+    return roleKey(role) === 'al-hadikhia' ? 'Al-Hadikhia' : role.trim();
+}
+
+
+
 /**
  * Build stable filter choices from all games, including roles in a player's
  * recorded role history and individual storytellers from co-ST games.
@@ -18,14 +29,17 @@ export function getFilterOptions(games) {
     const scripts = new Set();
     const storytellers = new Set();
     const players = new Set();
-    const roles = new Set();
+    const roles = new Map();
 
     for (const game of games) {
         if (game.game_mode) scripts.add(game.game_mode);
         storytellerNames(game.story_teller).forEach(name => storytellers.add(name));
         for (const player of game.players || []) {
             if (player.name) players.add(player.name);
-            rolesForPlayer(player).forEach(role => roles.add(role));
+            rolesForPlayer(player).forEach(role => {
+                const key = roleKey(role);
+                if (!roles.has(key)) roles.set(key, roleFilterLabel(role));
+            });
         }
     }
 
@@ -34,7 +48,7 @@ export function getFilterOptions(games) {
         scripts: sort(scripts),
         storytellers: sort(storytellers),
         players: sort(players),
-        roles: sort(roles),
+        roles: sort(roles.values()),
     };
 }
 
@@ -53,13 +67,13 @@ export function filterGames(games, filters, categorizeScript) {
 
     return games.filter(game => {
         const gamePlayers = game.players || [];
-        const gameRoles = new Set(gamePlayers.flatMap(gamePlayer => [...rolesForPlayer(gamePlayer)]));
+        const gameRoles = new Set(gamePlayers.flatMap(gamePlayer => [...rolesForPlayer(gamePlayer)].map(roleKey)));
 
         return matchesSelection(selections.gameType, [categorizeScript(game.game_mode)])
             && matchesSelection(selections.script, game.game_mode ? [game.game_mode] : [])
             && matchesSelection(selections.storyteller, storytellerNames(game.story_teller))
             && matchesSelection(selections.player, gamePlayers.map(gamePlayer => gamePlayer.name).filter(Boolean))
-            && matchesSelection(selections.role, [...gameRoles]);
+            && matchesSelection(selections.role, [...gameRoles], roleKey);
     });
 }
 
@@ -72,10 +86,11 @@ function normalizeSelection(selection) {
     };
 }
 
-function matchesSelection(selection, gameValues) {
+function matchesSelection(selection, gameValues, normalize = value => value) {
     if (!selection.values.length) return true;
+    const selectedValues = selection.values.map(normalize);
     const hasMatch = selection.match === 'all'
-        ? selection.values.every(value => gameValues.includes(value))
-        : gameValues.some(value => selection.values.includes(value));
+        ? selectedValues.every(value => gameValues.includes(value))
+        : gameValues.some(value => selectedValues.includes(value));
     return selection.mode === 'exclude' ? !hasMatch : hasMatch;
 }
