@@ -39,31 +39,43 @@ export function getFilterOptions(games) {
 }
 
 /**
- * Return games matching every active filter. Values within each game field
- * match exactly; selecting a player or role includes games containing either.
+ * Return games matching every active filter. Selected values use OR by default;
+ * a filter can opt into matching all values. Exclude mode inverts that match.
  */
 export function filterGames(games, filters, categorizeScript) {
-    const {
-        gameType = 'all',
-        script = '',
-        storyteller = '',
-        player = '',
-        role = '',
-    } = filters;
-    const targetCategory = gameType === 'normal'
-        ? 'Normal'
-        : gameType === 'teensyville'
-            ? 'Teensyville'
-            : null;
+    const selections = {
+        gameType: normalizeSelection(filters.gameType),
+        script: normalizeSelection(filters.script),
+        storyteller: normalizeSelection(filters.storyteller),
+        player: normalizeSelection(filters.player),
+        role: normalizeSelection(filters.role),
+    };
 
     return games.filter(game => {
-        if (targetCategory && categorizeScript(game.game_mode) !== targetCategory) return false;
-        if (script && game.game_mode !== script) return false;
-        if (storyteller && !storytellerNames(game.story_teller).includes(storyteller)) return false;
-
         const gamePlayers = game.players || [];
-        if (player && !gamePlayers.some(gamePlayer => gamePlayer.name === player)) return false;
-        if (role && !gamePlayers.some(gamePlayer => rolesForPlayer(gamePlayer).has(role))) return false;
-        return true;
+        const gameRoles = new Set(gamePlayers.flatMap(gamePlayer => [...rolesForPlayer(gamePlayer)]));
+
+        return matchesSelection(selections.gameType, [categorizeScript(game.game_mode)])
+            && matchesSelection(selections.script, game.game_mode ? [game.game_mode] : [])
+            && matchesSelection(selections.storyteller, storytellerNames(game.story_teller))
+            && matchesSelection(selections.player, gamePlayers.map(gamePlayer => gamePlayer.name).filter(Boolean))
+            && matchesSelection(selections.role, [...gameRoles]);
     });
+}
+
+function normalizeSelection(selection) {
+    if (Array.isArray(selection)) return { mode: 'include', match: 'any', values: selection };
+    return {
+        mode: selection?.mode === 'exclude' ? 'exclude' : 'include',
+        match: selection?.match === 'all' ? 'all' : 'any',
+        values: Array.isArray(selection?.values) ? selection.values : [],
+    };
+}
+
+function matchesSelection(selection, gameValues) {
+    if (!selection.values.length) return true;
+    const hasMatch = selection.match === 'all'
+        ? selection.values.every(value => gameValues.includes(value))
+        : gameValues.some(value => selection.values.includes(value));
+    return selection.mode === 'exclude' ? !hasMatch : hasMatch;
 }

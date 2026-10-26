@@ -7,7 +7,7 @@
     <meta name="description" content="ELO ratings and statistics for Blood on the Clocktower games">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="css/styles.css?v=leaderboard-filters-2026-10-26">
+    <link rel="stylesheet" href="css/styles.css?v=leaderboard-multifilters-v3-2026-10-26">
 
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -120,12 +120,6 @@
                 <div class="table-header">
                     <h2>Player Rankings</h2>
                     <div class="controls">
-                        <label for="game-type-filter">Type:</label>
-                        <select id="game-type-filter">
-                            <option value="all">All Games</option>
-                            <option value="normal">Full Scripts</option>
-                            <option value="teensyville">Teensyville</option>
-                        </select>
                         <label for="game-range">Range:</label>
                         <input type="text" id="game-range" placeholder="e.g., 67-69">
                         <button id="clear-range" class="secondary">Clear</button>
@@ -136,36 +130,103 @@
 
                 <div class="leaderboard-filter-panel">
                     <div class="leaderboard-filters">
-                        <div class="leaderboard-filter">
-                            <label for="script-filter">Script</label>
-                            <select id="script-filter">
-                                <option value="">All scripts</option>
-                            </select>
-                        </div>
-                        <div class="leaderboard-filter">
-                            <label for="storyteller-filter">Storyteller</label>
-                            <select id="storyteller-filter">
-                                <option value="">All storytellers</option>
-                            </select>
-                        </div>
-                        <div class="leaderboard-filter">
-                            <label for="player-filter">Player in game</label>
-                            <select id="player-filter">
-                                <option value="">Any player</option>
-                            </select>
-                        </div>
-                        <div class="leaderboard-filter">
-                            <label for="role-filter">Role in play</label>
-                            <select id="role-filter">
-                                <option value="">Any role</option>
-                            </select>
-                        </div>
+                        <details class="leaderboard-filter" id="game-type-filter" data-leaderboard-filter="gameType">
+                            <summary><span>Script type</span><span class="filter-selection-summary" data-filter-summary>All</span></summary>
+                            <div class="filter-menu">
+                                <label class="filter-mode-label">Mode
+                                    <select data-filter-mode>
+                                        <option value="include">Include selected</option>
+                                        <option value="exclude">Exclude selected</option>
+                                    </select>
+                                </label>
+                                <input class="filter-search" type="search" data-filter-search placeholder="Search options..." aria-label="Search script types">
+                                <div class="filter-option-actions">
+                                    <button type="button" data-filter-action="select-visible">Check visible</button>
+                                    <button type="button" data-filter-action="clear">Clear selection</button>
+                                </div>
+                                <div class="filter-options" data-filter-options role="group" aria-label="Script type"></div>
+                            </div>
+                        </details>
+                        <details class="leaderboard-filter" id="script-filter" data-leaderboard-filter="script">
+                            <summary><span>Script</span><span class="filter-selection-summary" data-filter-summary>All</span></summary>
+                            <div class="filter-menu">
+                                <label class="filter-mode-label">Mode
+                                    <select data-filter-mode>
+                                        <option value="include">Include selected</option>
+                                        <option value="exclude">Exclude selected</option>
+                                    </select>
+                                </label>
+                                <input class="filter-search" type="search" data-filter-search placeholder="Search scripts..." aria-label="Search scripts">
+                                <div class="filter-option-actions">
+                                    <button type="button" data-filter-action="select-visible">Check visible</button>
+                                    <button type="button" data-filter-action="clear">Clear selection</button>
+                                </div>
+                                <div class="filter-options" data-filter-options role="group" aria-label="Script"></div>
+                            </div>
+                        </details>
+                        <details class="leaderboard-filter" id="storyteller-filter" data-leaderboard-filter="storyteller">
+                            <summary><span>Storyteller</span><span class="filter-selection-summary" data-filter-summary>All</span></summary>
+                            <div class="filter-menu">
+                                <label class="filter-mode-label">Mode
+                                    <select data-filter-mode>
+                                        <option value="include">Include selected</option>
+                                        <option value="exclude">Exclude selected</option>
+                                    </select>
+                                </label>
+                                <input class="filter-search" type="search" data-filter-search placeholder="Search storytellers..." aria-label="Search storytellers">
+                                <div class="filter-option-actions">
+                                    <button type="button" data-filter-action="select-visible">Check visible</button>
+                                    <button type="button" data-filter-action="clear">Clear selection</button>
+                                </div>
+                                <div class="filter-options" data-filter-options role="group" aria-label="Storyteller"></div>
+                            </div>
+                        </details>
+                        <details class="leaderboard-filter" id="player-filter" data-leaderboard-filter="player">
+                            <summary><span>Player in game</span><span class="filter-selection-summary" data-filter-summary>All</span></summary>
+                            <div class="filter-menu">
+                                <label class="filter-mode-label">Match players
+                                    <select data-filter-match>
+                                        <option value="all">All players</option>
+                                        <option value="any">Any player</option>
+                                    </select>
+                                </label>
+                                <label class="filter-mode-label">Mode
+                                    <select data-filter-mode>
+                                        <option value="include">Include selected</option>
+                                        <option value="exclude">Exclude selected</option>
+                                    </select>
+                                </label>
+                                <input class="filter-search" type="search" data-filter-search placeholder="Search players..." aria-label="Search players">
+                                <div class="filter-option-actions">
+                                    <button type="button" data-filter-action="select-visible">Check visible</button>
+                                    <button type="button" data-filter-action="clear">Clear selection</button>
+                                </div>
+                                <div class="filter-options" data-filter-options role="group" aria-label="Player in game"></div>
+                            </div>
+                        </details>
+                        <details class="leaderboard-filter" id="role-filter" data-leaderboard-filter="role">
+                            <summary><span>Role in play</span><span class="filter-selection-summary" data-filter-summary>All</span></summary>
+                            <div class="filter-menu">
+                                <label class="filter-mode-label">Mode
+                                    <select data-filter-mode>
+                                        <option value="include">Include selected</option>
+                                        <option value="exclude">Exclude selected</option>
+                                    </select>
+                                </label>
+                                <input class="filter-search" type="search" data-filter-search placeholder="Search roles..." aria-label="Search roles">
+                                <div class="filter-option-actions">
+                                    <button type="button" data-filter-action="select-visible">Check visible</button>
+                                    <button type="button" data-filter-action="clear">Clear selection</button>
+                                </div>
+                                <div class="filter-options" data-filter-options role="group" aria-label="Role in play"></div>
+                            </div>
+                        </details>
                     </div>
                     <div class="leaderboard-filter-footer">
                         <p id="filter-result-count" aria-live="polite"></p>
                         <button class="secondary" id="reset-leaderboard-filters" type="button">Reset filters</button>
                     </div>
-                    <p class="filter-help">Filters combine. Player and role filters include games where that player or role appeared; ratings are recalculated for everyone in the matching games.</p>
+                    <p class="filter-help">Filters combine across groups. Checked items include or exclude matching games; player filters can require all selected players or any one of them. Everyone in matching games is ranked.</p>
                 </div>
 
                 <table class="leaderboard-table">
@@ -428,7 +489,7 @@
     </div>
 
     <!-- Main Application Script -->
-    <script type="module" src="js/app.js?v=leaderboard-filters-2026-10-26"></script>
+    <script type="module" src="js/app.js?v=leaderboard-multifilters-v3-2026-10-26"></script>
     <script src="js/settings.js"></script>
 </body>
 </html>
