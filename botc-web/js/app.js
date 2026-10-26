@@ -6,7 +6,7 @@ import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js';
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js';
 import { initGameEntry, updatePlayerNames } from './gameEntry.js';
 import { categorizeScript, setScriptCategories } from './config.js';
-import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=leaderboard-multifilters-v3-2026-10-26';
+import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=leaderboard-multifilters-v4-2026-10-26';
 import SITE_CONFIG from './site-config.js';
 
 // Global state

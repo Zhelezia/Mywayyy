@@ -96,6 +96,30 @@ test('filter options include co-storytellers and every role in history', () => {
     assert.deepEqual(options.roles, ['Artist', 'Empath', 'Imp', 'Philosopher', 'Wraith']);
 });
 
+test('role spelling and capitalization variants share one Al-Hadikhia filter option', () => {
+    const alHadikhiaGames = [
+        {
+            game_id: 4,
+            game_mode: 'Script A',
+            story_teller: 'Alex',
+            players: [{name: 'Максим', role: 'Al-hadikhia'}],
+        },
+        {
+            game_id: 5,
+            game_mode: 'Script B',
+            story_teller: 'Bea',
+            players: [{name: 'Лиза', role: 'Al-Hadikhia'}],
+        },
+    ];
+    const options = getFilterOptions(alHadikhiaGames);
+    const matches = filterGames(alHadikhiaGames, {
+        role: {mode: 'include', values: ['AL-HADIKHIA']},
+    }, categorizeScript);
+
+    assert.deepEqual(options.roles, ['Al-Hadikhia']);
+    assert.deepEqual(matches.map(game => game.game_id), [4, 5]);
+});
+
 test('returns no games when exclusions remove every matching game', () => {
     const matches = filterGames(games, {
         gameType: {mode: 'include', values: ['Teensyville']},
