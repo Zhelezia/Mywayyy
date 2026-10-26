@@ -436,6 +436,81 @@ html[data-colorblind="true"] .win-bar-evil { background: rgba(249, 115, 22, 0.35
     background: var(--border-color);
 }
 
+.leaderboard-filter-panel {
+    margin: -4px 0 20px;
+    padding: 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.leaderboard-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    gap: 12px;
+}
+
+.leaderboard-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.leaderboard-filter label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.leaderboard-filter select {
+    width: 100%;
+    min-width: 0;
+    padding: 9px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.leaderboard-filter select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.leaderboard-filter-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+#filter-result-count {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+#reset-leaderboard-filters {
+    padding: 7px 11px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+#reset-leaderboard-filters:hover {
+    background: var(--border-color);
+}
+
+.filter-help {
+    margin: 9px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
 /* Leaderboard table */
 .leaderboard-table {
     width: 100%;
@@ -718,6 +793,10 @@ footer a:hover {
         width: 100%;
     }
 
+    .leaderboard-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .leaderboard-table {
         font-size: 0.85rem;
     }
@@ -743,6 +822,15 @@ footer a:hover {
 
     .stats-summary {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .leaderboard-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .leaderboard-filter-footer {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
     .leaderboard-table th:nth-child(4),
