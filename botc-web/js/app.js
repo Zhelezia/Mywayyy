@@ -6,7 +6,7 @@ import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js';
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js';
 import { initGameEntry, updatePlayerNames } from './gameEntry.js';
 import { categorizeScript, setScriptCategories } from './config.js';
-import { filterGames, getFilterOptions } from './leaderboardFilters.mjs';
+import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=leaderboard-multifilters-v3-2026-10-26';
 import SITE_CONFIG from './site-config.js';
 
 // Global state
@@ -14,7 +14,6 @@ let gameLog = [];
 let players = {};
 let leaderboard = [];
 let currentSort = { column: 'rating', ascending: false };
-let currentGameTypeFilter = 'all'; // 'all' | 'normal' | 'teensyville'
 
 // DOM Elements
 const loadingEl = document.getElementById('loading');
@@ -28,6 +27,7 @@ const scriptFilterEl = document.getElementById('script-filter');
 const storytellerFilterEl = document.getElementById('storyteller-filter');
 const playerFilterEl = document.getElementById('player-filter');
 const roleFilterEl = document.getElementById('role-filter');
+const leaderboardFilterEls = [gameTypeFilterEl, scriptFilterEl, storytellerFilterEl, playerFilterEl, roleFilterEl].filter(Boolean);
 const resetFiltersBtn = document.getElementById('reset-leaderboard-filters');
 const filterResultCountEl = document.getElementById('filter-result-count');
 
@@ -184,37 +184,82 @@ async function refreshData() {
  */
 function getFilteredGames() {
     return filterGames(gameLog, {
-        gameType: currentGameTypeFilter,
-        script: scriptFilterEl?.value || '',
-        storyteller: storytellerFilterEl?.value || '',
-        player: playerFilterEl?.value || '',
-        role: roleFilterEl?.value || '',
+        gameType: getFilterSelection(gameTypeFilterEl),
+        script: getFilterSelection(scriptFilterEl),
+        storyteller: getFilterSelection(storytellerFilterEl),
+        player: getFilterSelection(playerFilterEl),
+        role: getFilterSelection(roleFilterEl),
     }, categorizeScript);
 }
 
 /**
- * Fill filter choices from the loaded game history, preserving valid selections.
+ * Fill checkbox choices from the loaded game history, preserving valid selections.
  */
 function populateLeaderboardFilters() {
     const options = getFilterOptions(gameLog);
-    setFilterOptions(scriptFilterEl, options.scripts, 'All scripts');
-    setFilterOptions(storytellerFilterEl, options.storytellers, 'All storytellers');
-    setFilterOptions(playerFilterEl, options.players, 'Any player', formatPlayerName);
-    setFilterOptions(roleFilterEl, options.roles, 'Any role', formatPlayerName);
+    setFilterOptions(gameTypeFilterEl, [
+        { value: 'Normal', label: 'Full scripts' },
+        { value: 'Teensyville', label: 'Teensyville' },
+    ]);
+    setFilterOptions(scriptFilterEl, options.scripts.map(value => ({ value, label: value })));
+    setFilterOptions(storytellerFilterEl, options.storytellers.map(value => ({ value, label: formatPlayerName(value) })));
+    setFilterOptions(playerFilterEl, options.players.map(value => ({ value, label: formatPlayerName(value) })));
+    setFilterOptions(roleFilterEl, options.roles.map(value => ({ value, label: formatPlayerName(value) })));
+    updateFilterSummaries();
 }
 
-function setFilterOptions(selectEl, values, placeholder, format = value => value) {
-    if (!selectEl) return;
+function setFilterOptions(filterEl, options) {
+    const optionsEl = filterEl?.querySelector('[data-filter-options]');
+    if (!optionsEl) return;
 
-    const selectedValue = selectEl.value;
-    selectEl.replaceChildren(new Option(placeholder, ''));
-    values.forEach(value => {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = format(value);
-        selectEl.appendChild(option);
+    const selectedValues = new Set([...optionsEl.querySelectorAll('input:checked')].map(input => input.value));
+    optionsEl.replaceChildren();
+    options.forEach(option => {
+        const label = document.createElement('label');
+        label.className = 'filter-option';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = option.value;
+        checkbox.checked = selectedValues.has(option.value);
+
+        const name = document.createElement('span');
+        name.textContent = option.label;
+
+        label.append(checkbox, name);
+        optionsEl.appendChild(label);
     });
-    selectEl.value = values.includes(selectedValue) ? selectedValue : '';
+    applyFilterSearch(filterEl);
+}
+
+function getFilterSelection(filterEl) {
+    if (!filterEl) return { mode: 'include', values: [] };
+    const matchControl = filterEl.querySelector('[data-filter-match]');
+    return {
+        mode: filterEl.querySelector('[data-filter-mode]')?.value === 'exclude' ? 'exclude' : 'include',
+        match: matchControl ? matchControl.value : 'any',
+        values: [...filterEl.querySelectorAll('[data-filter-options] input:checked')].map(input => input.value),
+    };
+}
+
+function applyFilterSearch(filterEl) {
+    const query = filterEl?.querySelector('[data-filter-search]')?.value.trim().toLocaleLowerCase() || '';
+    filterEl?.querySelectorAll('.filter-option').forEach(optionEl => {
+        optionEl.hidden = !optionEl.textContent.toLocaleLowerCase().includes(query);
+    });
+}
+
+function updateFilterSummaries() {
+    leaderboardFilterEls.forEach(filterEl => {
+        const { mode, values } = getFilterSelection(filterEl);
+        const summary = filterEl.querySelector('[data-filter-summary]');
+        if (summary) {
+            summary.textContent = values.length
+                ? `${values.length} ${mode === 'exclude' ? 'excluded' : 'included'}`
+                : 'All';
+        }
+        filterEl.classList.toggle('has-selection', values.length > 0);
+    });
 }
 
 function updateFilterResultCount() {
@@ -231,6 +276,7 @@ function recalcForFilter() {
     const filteredGames = getFilteredGames();
     players = recalcAll(filteredGames);
     leaderboard = getLeaderboard(players);
+    updateFilterSummaries();
     updateFilterResultCount();
 }
 
@@ -460,18 +506,30 @@ function setupEventListeners() {
         renderLeaderboard();
     });
 
-    // Recalculate all stats and ratings whenever a game filter changes.
-    if (gameTypeFilterEl) {
-        gameTypeFilterEl.addEventListener('change', () => {
-            currentGameTypeFilter = gameTypeFilterEl.value;
+    // Recalculate ratings, summary cards, and leaderboard whenever filters change.
+    leaderboardFilterEls.forEach(filterEl => {
+        filterEl.addEventListener('change', event => {
+            if (!event.target.matches('[data-filter-mode], [data-filter-options] input[type="checkbox"]')) return;
             recalcForFilter();
             updateStatsSummary();
             renderLeaderboard();
         });
-    }
 
-    [scriptFilterEl, storytellerFilterEl, playerFilterEl, roleFilterEl].forEach(selectEl => {
-        selectEl?.addEventListener('change', () => {
+        filterEl.querySelector('[data-filter-search]')?.addEventListener('input', () => applyFilterSearch(filterEl));
+
+        filterEl.addEventListener('click', event => {
+            const action = event.target.closest('[data-filter-action]')?.dataset.filterAction;
+            if (!action) return;
+
+            const checkboxes = [...filterEl.querySelectorAll('[data-filter-options] input[type="checkbox"]')];
+            if (action === 'clear') {
+                checkboxes.forEach(checkbox => { checkbox.checked = false; });
+            } else if (action === 'select-visible') {
+                checkboxes.forEach(checkbox => {
+                    if (!checkbox.closest('.filter-option')?.hidden) checkbox.checked = true;
+                });
+            }
+
             recalcForFilter();
             updateStatsSummary();
             renderLeaderboard();
@@ -479,10 +537,18 @@ function setupEventListeners() {
     });
 
     resetFiltersBtn?.addEventListener('click', () => {
-        if (gameTypeFilterEl) gameTypeFilterEl.value = 'all';
-        currentGameTypeFilter = 'all';
-        [scriptFilterEl, storytellerFilterEl, playerFilterEl, roleFilterEl].forEach(selectEl => {
-            if (selectEl) selectEl.value = '';
+        leaderboardFilterEls.forEach(filterEl => {
+            const mode = filterEl.querySelector('[data-filter-mode]');
+            if (mode) mode.value = 'include';
+            const match = filterEl.querySelector('[data-filter-match]');
+            if (match) match.value = 'all';
+            const search = filterEl.querySelector('[data-filter-search]');
+            if (search) search.value = '';
+            filterEl.querySelectorAll('[data-filter-options] input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            filterEl.open = false;
+            applyFilterSearch(filterEl);
         });
         gameRangeInput.value = '';
         recalcForFilter();
