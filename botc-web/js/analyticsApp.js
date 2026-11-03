@@ -5,6 +5,7 @@
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js';
 import { setScriptCategories } from './config.js';
 import SITE_CONFIG from './site-config.js';
+import { characterRoleKey } from './roleNames.mjs';
 import {
     StorytellerAnalytics,
     extractStorytellers,
@@ -13,7 +14,7 @@ import {
     analyzeHeadToHead,
     calculateCharacterElo,
     getCharacterScriptBreakdown
-} from './analytics.js';
+} from './analytics.js?v=role-canonical-2026-11-03';
 
 // ==========================================
 // STATE
@@ -621,9 +622,11 @@ function updatePlayerRolesTable(stats) {
             <td>${r.games}</td>
         `;
         row.addEventListener('click', () => {
+            const targetRole = characterRoleKey(role);
             const games = currentAnalytics.games.filter(g =>
                 g.players.some(p => p.name === playerName &&
-                    (p.role === role || (p.roles && p.roles.includes(role)))));
+                    (characterRoleKey(p.role) === targetRole ||
+                        (p.roles && p.roles.some(recordedRole => characterRoleKey(recordedRole) === targetRole)))));
             showGameHistory(`${playerName.replace(/_/g, ' ')} as ${role.replace(/_/g, ' ')}`, roleType, games);
         });
         tbody.appendChild(row);
@@ -1506,9 +1509,11 @@ function showCharacterDetail(characterName, roleType, elo) {
     if (gamesBtn) {
         gamesBtn.onclick = () => {
             closeCharacterDetail();
+            const targetRole = characterRoleKey(characterName);
             const games = currentAnalytics.games.filter(g =>
                 g.players && g.players.some(p =>
-                    p.role === characterName || (p.roles && p.roles.includes(characterName))));
+                    characterRoleKey(p.role) === targetRole ||
+                        (p.roles && p.roles.some(role => characterRoleKey(role) === targetRole))));
             showGameHistory(characterName.replace(/_/g, ' '), roleType, games);
         };
     }

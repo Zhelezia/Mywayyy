@@ -1,3 +1,5 @@
+import {canonicalCharacterName, characterRoleKey} from './roleNames.mjs';
+
 function storytellerNames(value) {
     return String(value || '')
         .split('+')
@@ -11,12 +13,11 @@ function rolesForPlayer(player) {
 }
 
 function roleKey(role) {
-    return String(role || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    return characterRoleKey(role);
 }
 
 function roleFilterLabel(role) {
-    // Historical records use both "Al-hadikhia" and "Al-Hadikhia".
-    return roleKey(role) === 'al-hadikhia' ? 'Al-Hadikhia' : role.trim();
+    return canonicalCharacterName(role);
 }
 
 

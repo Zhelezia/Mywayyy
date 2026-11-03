@@ -10,6 +10,7 @@
 
 // Re-export script helpers from config.js so they share the dynamic category map
 import { categorizeScript, normalizeScriptName } from './config.js';
+import { canonicalCharacterName, characterRoleKey } from './roleNames.mjs';
 export { categorizeScript, normalizeScriptName };
 
 // Character role type mapping
@@ -188,7 +189,7 @@ const CHARACTER_ROLE_TYPES = {
  */
 export function normalizeCharacterName(name) {
     if (!name) return '';
-    return name.replace(/ /g, '_').toLowerCase().trim();
+    return canonicalCharacterName(name).replace(/ /g, '_').toLowerCase().trim();
 }
 
 /**
@@ -471,12 +472,13 @@ export class StorytellerAnalytics {
                 const rolesList = p.roles || [p.role];
                 for (const role of rolesList) {
                     if (!role) continue;
-                    if (!entry.roles[role]) {
-                        entry.roles[role] = { games: 0, wins: 0 };
+                    const canonicalRole = canonicalCharacterName(role);
+                    if (!entry.roles[canonicalRole]) {
+                        entry.roles[canonicalRole] = { games: 0, wins: 0 };
                     }
-                    entry.roles[role].games++;
+                    entry.roles[canonicalRole].games++;
                     if (team === winningTeam) {
-                        entry.roles[role].wins++;
+                        entry.roles[canonicalRole].wins++;
                     }
                 }
             }
@@ -689,7 +691,7 @@ export class StorytellerAnalytics {
             // Map each role to teams of players with that role
             const roleTeams = {};
             for (const p of (game.players || [])) {
-                const role = p.role || '';
+                const role = canonicalCharacterName(p.role || '');
                 if (!role) continue;
                 if (!roleTeams[role]) roleTeams[role] = [];
                 roleTeams[role].push(p.team);
@@ -891,10 +893,10 @@ export function calculateCharacterElo(games) {
 
         // Get unique characters by team (handles duplicates like Legion)
         const goodChars = [...new Set(
-            players.filter(p => p.team === 'Good').map(p => p.role).filter(r => r)
+            players.filter(p => p.team === 'Good').map(p => canonicalCharacterName(p.role)).filter(r => r)
         )];
         const evilChars = [...new Set(
-            players.filter(p => p.team === 'Evil').map(p => p.role).filter(r => r)
+            players.filter(p => p.team === 'Evil').map(p => canonicalCharacterName(p.role)).filter(r => r)
         )];
 
         // Skip games with no characters on either team
@@ -989,7 +991,8 @@ export function getCharacterScriptBreakdown(games, characterName) {
         const script = game.game_mode || 'Unknown';
 
         // Find all players who played this character in this game
-        const playersWithChar = players.filter(p => p.role === characterName);
+        const targetRole = characterRoleKey(characterName);
+        const playersWithChar = players.filter(p => characterRoleKey(p.role) === targetRole);
 
         // Skip games where this character doesn't appear
         if (playersWithChar.length === 0) continue;
