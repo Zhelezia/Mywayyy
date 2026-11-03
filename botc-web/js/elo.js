@@ -9,6 +9,8 @@ import SITE_CONFIG from './site-config.js';
 export const DEFAULT_RATING = SITE_CONFIG.defaultRating || 1500;
 export const ELO_K_FACTOR = SITE_CONFIG.kFactor || 32;
 export const MIN_GAMES_FOR_LEADERBOARD = SITE_CONFIG.minGamesForLeaderboard || 5;
+export const PROVISIONAL_RATING = 1300;
+export const PROVISIONAL_GAMES = 3;
 
 /**
  * Calculate expected score using ELO formula.
@@ -111,15 +113,39 @@ export class Player {
  * @param {Object} players - Map of player name to Player object
  * @returns {number} Average rating of the team
  */
-function teamAverage(teamList, players) {
+function teamAverage(teamList, players, trackedGamesBeforeThisGame) {
     if (!teamList || teamList.length === 0) {
         return DEFAULT_RATING;
     }
     const sum = teamList.reduce((acc, p) => {
         const player = players[p.name];
-        return acc + (player ? player.currentRating : DEFAULT_RATING);
+        const gamesBeforeThisGame = trackedGamesBeforeThisGame?.get(p.name) ?? player?.gamesOverall ?? 0;
+        const expectedRating = player && gamesBeforeThisGame >= PROVISIONAL_GAMES
+            ? player.currentRating
+            : PROVISIONAL_RATING;
+        return acc + expectedRating;
     }, 0);
     return sum / teamList.length;
+}
+
+/**
+ * Count each player's appearances before each game in the full tracker history.
+ * This keeps a player's provisional period from restarting when games are filtered.
+ */
+function getTrackedGamesBeforeEachGame(gameLog) {
+    const appearances = new Map();
+    const gamesBefore = new Map();
+    const sortedGames = [...gameLog].sort((a, b) => a.game_id - b.game_id);
+
+    for (const game of sortedGames) {
+        const playerNames = new Set((game.players || []).map(player => player.name).filter(Boolean));
+        gamesBefore.set(game.game_id, new Map(
+            [...playerNames].map(name => [name, appearances.get(name) || 0])
+        ));
+        playerNames.forEach(name => appearances.set(name, (appearances.get(name) || 0) + 1));
+    }
+
+    return gamesBefore;
 }
 
 /**
@@ -127,11 +153,12 @@ function teamAverage(teamList, players) {
  * @param {Array} gameLog - Array of game records
  * @returns {Object} Map of player name to Player object with calculated stats
  */
-export function recalcAll(gameLog) {
+export function recalcAll(gameLog, trackingHistory = gameLog) {
     const players = {};
 
     // Sort games chronologically by game_id
     const sortedGames = [...gameLog].sort((a, b) => a.game_id - b.game_id);
+    const trackedGamesBeforeEachGame = getTrackedGamesBeforeEachGame(trackingHistory || gameLog);
 
     for (const game of sortedGames) {
         // Ensure all players exist
@@ -146,8 +173,9 @@ export function recalcAll(gameLog) {
         const teamEvil = game.players.filter(p => p.team === "Evil");
 
         // Calculate team averages
-        const avgGood = teamAverage(teamGood, players);
-        const avgEvil = teamAverage(teamEvil, players);
+        const trackedGamesBeforeThisGame = trackedGamesBeforeEachGame.get(game.game_id);
+        const avgGood = teamAverage(teamGood, players, trackedGamesBeforeThisGame);
+        const avgEvil = teamAverage(teamEvil, players, trackedGamesBeforeThisGame);
 
         // Calculate expected scores
         const expGood = expectedScore(avgGood, avgEvil);

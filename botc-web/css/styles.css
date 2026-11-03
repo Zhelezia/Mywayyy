@@ -610,6 +610,25 @@ html[data-colorblind="true"] .win-bar-evil { background: rgba(249, 115, 22, 0.35
     font-size: 0.85rem;
 }
 
+.leaderboard-min-games-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.leaderboard-min-games-option input {
+    accent-color: var(--accent-blue);
+}
+
+.leaderboard-empty {
+    padding: 18px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
 #reset-leaderboard-filters {
     padding: 7px 11px;
     border: 1px solid var(--border-color);

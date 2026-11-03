@@ -2,7 +2,7 @@
  * Blood on the Clocktower Stats - Main Application
  */
 
-import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js';
+import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=provisional-rating-1300-2026-11-04';
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js';
 import { initGameEntry, updatePlayerNames } from './gameEntry.js';
 import { categorizeScript, setScriptCategories } from './config.js';
@@ -30,6 +30,7 @@ const roleFilterEl = document.getElementById('role-filter');
 const leaderboardFilterEls = [gameTypeFilterEl, scriptFilterEl, storytellerFilterEl, playerFilterEl, roleFilterEl].filter(Boolean);
 const resetFiltersBtn = document.getElementById('reset-leaderboard-filters');
 const filterResultCountEl = document.getElementById('filter-result-count');
+const hideUnder10GamesEl = document.getElementById('hide-under-10-games');
 
 // Stats elements
 const totalGamesEl = document.getElementById('total-games');
@@ -265,8 +266,16 @@ function updateFilterSummaries() {
 function updateFilterResultCount() {
     if (!filterResultCountEl) return;
     const filteredGames = getFilteredGames();
-    const playerLabel = leaderboard.length === 1 ? 'player ranked' : 'players ranked';
-    filterResultCountEl.textContent = `Showing ${filteredGames.length} of ${gameLog.length} games · ${leaderboard.length} ${playerLabel}`;
+    const visiblePlayers = getVisibleLeaderboard().length;
+    const playerLabel = visiblePlayers === 1 ? 'player ranked' : 'players ranked';
+    filterResultCountEl.textContent = `Showing ${filteredGames.length} of ${gameLog.length} games · ${visiblePlayers} ${playerLabel}`;
+}
+
+function getVisibleLeaderboard() {
+    const visible = leaderboard.filter(player => !hideUnder10GamesEl?.checked || player.gamesPlayed >= 10);
+    const ratingOrder = [...visible].sort((a, b) => b.rating - a.rating);
+    const rankByName = new Map(ratingOrder.map((player, index) => [player.name, index + 1]));
+    return visible.map(player => ({ ...player, rank: rankByName.get(player.name) }));
 }
 
 /**
@@ -274,7 +283,7 @@ function updateFilterResultCount() {
  */
 function recalcForFilter() {
     const filteredGames = getFilteredGames();
-    players = recalcAll(filteredGames);
+    players = recalcAll(filteredGames, gameLog);
     leaderboard = getLeaderboard(players);
     updateFilterSummaries();
     updateFilterResultCount();
@@ -370,7 +379,7 @@ function renderLeaderboard() {
     const { start, end } = parseGameRange();
 
     // Sort the leaderboard
-    const sortedLeaderboard = [...leaderboard].sort((a, b) => {
+    const sortedLeaderboard = getVisibleLeaderboard().sort((a, b) => {
         let aVal, bVal;
 
         switch (currentSort.column) {
@@ -414,6 +423,18 @@ function renderLeaderboard() {
 
     // Clear existing rows
     tableBodyEl.innerHTML = '';
+
+    if (!sortedLeaderboard.length) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 8;
+        cell.className = 'leaderboard-empty';
+        cell.textContent = hideUnder10GamesEl?.checked
+            ? 'No players have 10 or more games in this selection'
+            : 'No players match the selected games';
+        row.appendChild(cell);
+        tableBodyEl.appendChild(row);
+    }
 
     // Add rows
     sortedLeaderboard.forEach((player, index) => {
@@ -550,9 +571,15 @@ function setupEventListeners() {
             filterEl.open = false;
             applyFilterSearch(filterEl);
         });
+        if (hideUnder10GamesEl) hideUnder10GamesEl.checked = false;
         gameRangeInput.value = '';
         recalcForFilter();
         updateStatsSummary();
+        renderLeaderboard();
+    });
+
+    hideUnder10GamesEl?.addEventListener('change', () => {
+        updateFilterResultCount();
         renderLeaderboard();
     });
 

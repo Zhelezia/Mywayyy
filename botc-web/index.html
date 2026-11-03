@@ -7,7 +7,7 @@
     <meta name="description" content="ELO ratings and statistics for Blood on the Clocktower games">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="css/styles.css?v=leaderboard-multifilters-v4-2026-10-26">
+    <link rel="stylesheet" href="css/styles.css?v=provisional-rating-1300-2026-11-04">
 
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -224,6 +224,10 @@
                     </div>
                     <div class="leaderboard-filter-footer">
                         <p id="filter-result-count" aria-live="polite"></p>
+                        <label class="leaderboard-min-games-option">
+                            <input id="hide-under-10-games" type="checkbox">
+                            <span>Hide players with fewer than 10 games</span>
+                        </label>
                         <button class="secondary" id="reset-leaderboard-filters" type="button">Reset filters</button>
                     </div>
                     <p class="filter-help">Filters combine across groups. Checked items include or exclude matching games; player filters can require all selected players or any one of them. Everyone in matching games is ranked.</p>
@@ -489,7 +493,7 @@
     </div>
 
     <!-- Main Application Script -->
-    <script type="module" src="js/app.js?v=leaderboard-multifilters-v5-role-canonical-2026-11-03"></script>
+    <script type="module" src="js/app.js?v=provisional-rating-1300-2026-11-04"></script>
     <script src="js/settings.js"></script>
 </body>
 </html>
