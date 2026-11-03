@@ -6,7 +6,7 @@ import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js';
 import { initGameEntry, updatePlayerNames } from './gameEntry.js';
 import { categorizeScript, setScriptCategories } from './config.js';
-import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=role-canonical-2026-11-03';
+import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=tri-state-2026-11-04';
 import SITE_CONFIG from './site-config.js';
 
 // Global state
@@ -194,7 +194,7 @@ function getFilteredGames() {
 }
 
 /**
- * Fill checkbox choices from the loaded game history, preserving valid selections.
+ * Fill three-state choices from the loaded history, preserving valid selections.
  */
 function populateLeaderboardFilters() {
     const options = getFilterOptions(gameLog);
@@ -213,53 +213,81 @@ function setFilterOptions(filterEl, options) {
     const optionsEl = filterEl?.querySelector('[data-filter-options]');
     if (!optionsEl) return;
 
-    const selectedValues = new Set([...optionsEl.querySelectorAll('input:checked')].map(input => input.value));
+    const previousStates = new Map([...optionsEl.querySelectorAll('[data-filter-value]')]
+        .map(option => [option.dataset.filterValue, option.dataset.filterState]));
     optionsEl.replaceChildren();
     options.forEach(option => {
-        const label = document.createElement('label');
-        label.className = 'filter-option';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'filter-option';
+        button.dataset.filterValue = option.value;
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = option.value;
-        checkbox.checked = selectedValues.has(option.value);
+        const mark = document.createElement('span');
+        mark.className = 'filter-option-mark';
+        mark.setAttribute('aria-hidden', 'true');
 
         const name = document.createElement('span');
+        name.className = 'filter-option-name';
         name.textContent = option.label;
 
-        label.append(checkbox, name);
-        optionsEl.appendChild(label);
+        button.append(mark, name);
+        setFilterOptionState(button, previousStates.get(option.value) || 'neutral');
+        optionsEl.appendChild(button);
     });
     applyFilterSearch(filterEl);
 }
 
+function setFilterOptionState(optionEl, state) {
+    const states = {
+        neutral: { mark: '', label: 'Any', next: 'include' },
+        include: { mark: '✓', label: 'Included', next: 'exclude' },
+        exclude: { mark: '✕', label: 'Excluded', next: 'clear' },
+    };
+    const current = states[state] || states.neutral;
+    optionEl.dataset.filterState = states[state] ? state : 'neutral';
+    optionEl.querySelector('.filter-option-mark').textContent = current.mark;
+    const label = optionEl.querySelector('.filter-option-name').textContent;
+    const description = `${label}: ${current.label}. Click to ${current.next}.`;
+    optionEl.setAttribute('aria-label', description);
+    optionEl.title = description;
+}
+
 function getFilterSelection(filterEl) {
-    if (!filterEl) return { mode: 'include', values: [] };
+    if (!filterEl) return { include: [], exclude: [] };
     const matchControl = filterEl.querySelector('[data-filter-match]');
+    const valuesFor = state => [...filterEl.querySelectorAll(`[data-filter-state="${state}"]`)]
+        .map(option => option.dataset.filterValue);
     return {
-        mode: filterEl.querySelector('[data-filter-mode]')?.value === 'exclude' ? 'exclude' : 'include',
         match: matchControl ? matchControl.value : 'any',
-        values: [...filterEl.querySelectorAll('[data-filter-options] input:checked')].map(input => input.value),
+        include: valuesFor('include'),
+        exclude: valuesFor('exclude'),
     };
 }
 
 function applyFilterSearch(filterEl) {
     const query = filterEl?.querySelector('[data-filter-search]')?.value.trim().toLocaleLowerCase() || '';
     filterEl?.querySelectorAll('.filter-option').forEach(optionEl => {
-        optionEl.hidden = !optionEl.textContent.toLocaleLowerCase().includes(query);
+        optionEl.hidden = !optionEl.querySelector('.filter-option-name').textContent.toLocaleLowerCase().includes(query);
+    });
+    const options = [...filterEl.querySelectorAll('.filter-option')];
+    const empty = filterEl.querySelector('[data-filter-empty]');
+    if (empty) empty.hidden = options.some(option => !option.hidden);
+    filterEl.querySelectorAll('[data-filter-action$="-visible"]').forEach(button => {
+        button.disabled = !options.some(option => !option.hidden);
     });
 }
 
 function updateFilterSummaries() {
     leaderboardFilterEls.forEach(filterEl => {
-        const { mode, values } = getFilterSelection(filterEl);
+        const { include, exclude } = getFilterSelection(filterEl);
         const summary = filterEl.querySelector('[data-filter-summary]');
         if (summary) {
-            summary.textContent = values.length
-                ? `${values.length} ${mode === 'exclude' ? 'excluded' : 'included'}`
-                : 'All';
+            summary.textContent = [include.length ? `✓ ${include.length}` : '', exclude.length ? `✕ ${exclude.length}` : '']
+                .filter(Boolean).join(' · ') || 'All';
+            summary.setAttribute('aria-label', include.length || exclude.length
+                ? `${include.length} included, ${exclude.length} excluded` : 'All');
         }
-        filterEl.classList.toggle('has-selection', values.length > 0);
+        filterEl.classList.toggle('has-selection', include.length + exclude.length > 0);
     });
 }
 
@@ -530,7 +558,7 @@ function setupEventListeners() {
     // Recalculate ratings, summary cards, and leaderboard whenever filters change.
     leaderboardFilterEls.forEach(filterEl => {
         filterEl.addEventListener('change', event => {
-            if (!event.target.matches('[data-filter-mode], [data-filter-options] input[type="checkbox"]')) return;
+            if (!event.target.matches('[data-filter-match]')) return;
             recalcForFilter();
             updateStatsSummary();
             renderLeaderboard();
@@ -539,15 +567,17 @@ function setupEventListeners() {
         filterEl.querySelector('[data-filter-search]')?.addEventListener('input', () => applyFilterSearch(filterEl));
 
         filterEl.addEventListener('click', event => {
+            const option = event.target.closest('[data-filter-value]');
             const action = event.target.closest('[data-filter-action]')?.dataset.filterAction;
-            if (!action) return;
+            if (!option && !action) return;
 
-            const checkboxes = [...filterEl.querySelectorAll('[data-filter-options] input[type="checkbox"]')];
-            if (action === 'clear') {
-                checkboxes.forEach(checkbox => { checkbox.checked = false; });
-            } else if (action === 'select-visible') {
-                checkboxes.forEach(checkbox => {
-                    if (!checkbox.closest('.filter-option')?.hidden) checkbox.checked = true;
+            if (option) {
+                const nextState = { neutral: 'include', include: 'exclude', exclude: 'neutral' };
+                setFilterOptionState(option, nextState[option.dataset.filterState]);
+            } else {
+                filterEl.querySelectorAll('[data-filter-value]').forEach(optionEl => {
+                    if (action === 'clear') setFilterOptionState(optionEl, 'neutral');
+                    else if (!optionEl.hidden) setFilterOptionState(optionEl, action === 'include-visible' ? 'include' : 'exclude');
                 });
             }
 
@@ -555,18 +585,34 @@ function setupEventListeners() {
             updateStatsSummary();
             renderLeaderboard();
         });
+
+        filterEl.addEventListener('keydown', event => {
+            if (event.key !== 'Escape') return;
+            filterEl.open = false;
+            filterEl.querySelector('summary').focus();
+        });
+
+        filterEl.addEventListener('toggle', () => {
+            if (filterEl.open) leaderboardFilterEls.forEach(other => {
+                if (other !== filterEl) other.open = false;
+            });
+        });
+    });
+
+    document.addEventListener('click', event => {
+        leaderboardFilterEls.forEach(filterEl => {
+            if (!filterEl.contains(event.target)) filterEl.open = false;
+        });
     });
 
     resetFiltersBtn?.addEventListener('click', () => {
         leaderboardFilterEls.forEach(filterEl => {
-            const mode = filterEl.querySelector('[data-filter-mode]');
-            if (mode) mode.value = 'include';
             const match = filterEl.querySelector('[data-filter-match]');
             if (match) match.value = 'all';
             const search = filterEl.querySelector('[data-filter-search]');
             if (search) search.value = '';
-            filterEl.querySelectorAll('[data-filter-options] input[type="checkbox"]').forEach(checkbox => {
-                checkbox.checked = false;
+            filterEl.querySelectorAll('[data-filter-value]').forEach(option => {
+                setFilterOptionState(option, 'neutral');
             });
             filterEl.open = false;
             applyFilterSearch(filterEl);

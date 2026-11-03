@@ -36,11 +36,11 @@ const categorizeScript = name => name === 'Teensyville script' ? 'Teensyville' :
 
 test('combines multiple included values within each filter', () => {
     const matches = filterGames(games, {
-        gameType: {mode: 'include', values: ['Normal', 'Teensyville']},
-        script: {mode: 'include', values: ['Trouble Brewing', 'Teensyville script']},
-        storyteller: {mode: 'include', values: ['Bea', 'Casey']},
-        player: {mode: 'include', values: ['Максим', 'Даня']},
-        role: {mode: 'include', values: ['Artist', 'Empath', 'Wraith']},
+        gameType: {include: ['Normal', 'Teensyville']},
+        script: {include: ['Trouble Brewing', 'Teensyville script']},
+        storyteller: {include: ['Bea', 'Casey']},
+        player: {include: ['Максим', 'Даня']},
+        role: {include: ['Artist', 'Empath', 'Wraith']},
     }, categorizeScript);
 
     assert.deepEqual(matches.map(game => game.game_id), [1, 2, 3]);
@@ -48,11 +48,11 @@ test('combines multiple included values within each filter', () => {
 
 test('excludes selected values while included values still use any-match semantics', () => {
     const matches = filterGames(games, {
-        gameType: {mode: 'include', values: ['Teensyville']},
-        script: {mode: 'exclude', values: ['Trouble Brewing']},
-        storyteller: {mode: 'exclude', values: ['Casey']},
-        player: {mode: 'include', values: ['Лиза', 'Даня']},
-        role: {mode: 'include', values: ['Wraith', 'Empath']},
+        gameType: {include: ['Teensyville']},
+        script: {exclude: ['Trouble Brewing']},
+        storyteller: {exclude: ['Casey']},
+        player: {include: ['Лиза', 'Даня']},
+        role: {include: ['Wraith', 'Empath']},
     }, categorizeScript);
 
     assert.deepEqual(matches.map(game => game.game_id), [3]);
@@ -60,9 +60,9 @@ test('excludes selected values while included values still use any-match semanti
 
 test('can require all selected players in games while excluding a script and storyteller', () => {
     const matches = filterGames(games, {
-        script: {mode: 'exclude', values: ['Trouble Brewing']},
-        storyteller: {mode: 'exclude', values: ['Casey']},
-        player: {mode: 'include', match: 'all', values: ['Максим', 'Лиза']},
+        script: {exclude: ['Trouble Brewing']},
+        storyteller: {exclude: ['Casey']},
+        player: {match: 'all', include: ['Максим', 'Лиза']},
     }, categorizeScript);
 
     assert.deepEqual(matches.map(game => game.game_id), [3]);
@@ -70,23 +70,23 @@ test('can require all selected players in games while excluding a script and sto
 
 test('all-player mode rejects a game containing only one selected player', () => {
     const matches = filterGames(games, {
-        player: {mode: 'include', match: 'all', values: ['Максим', 'Даня']},
+        player: {match: 'all', include: ['Максим', 'Даня']},
     }, categorizeScript);
 
     assert.deepEqual(matches.map(game => game.game_id), [2]);
 });
 
-test('empty include and exclude lists both leave a filter inactive', () => {
+test('empty include and exclude lists leave a filter inactive', () => {
     const matches = filterGames(games, {
-        gameType: {mode: 'exclude', values: []},
-        script: {mode: 'include', values: []},
+        gameType: {exclude: []},
+        script: {include: []},
     }, categorizeScript);
 
     assert.deepEqual(matches.map(game => game.game_id), [1, 2, 3]);
 });
 
 test('role filter finds a character in a role-change history', () => {
-    const matches = filterGames(games, {role: {mode: 'include', values: ['Artist']}}, categorizeScript);
+    const matches = filterGames(games, {role: {include: ['Artist']}}, categorizeScript);
     assert.deepEqual(matches.map(game => game.game_id), [1, 2]);
 });
 
@@ -113,7 +113,7 @@ test('role spelling and capitalization variants share one Al-Hadikhia filter opt
     ];
     const options = getFilterOptions(alHadikhiaGames);
     const matches = filterGames(alHadikhiaGames, {
-        role: {mode: 'include', values: ['AL-HADIKHIA']},
+        role: {include: ['AL-HADIKHIA']},
     }, categorizeScript);
 
     assert.deepEqual(options.roles, ['Al-Hadikhia']);
@@ -122,8 +122,55 @@ test('role spelling and capitalization variants share one Al-Hadikhia filter opt
 
 test('returns no games when exclusions remove every matching game', () => {
     const matches = filterGames(games, {
-        gameType: {mode: 'include', values: ['Teensyville']},
-        script: {mode: 'exclude', values: ['Teensyville script']},
+        gameType: {include: ['Teensyville']},
+        script: {exclude: ['Teensyville script']},
     }, categorizeScript);
     assert.deepEqual(matches, []);
+});
+
+test('includes and excludes different players in the same group', () => {
+    const matches = filterGames(games, {
+        player: {include: ['Максим'], exclude: ['Лиза']},
+    }, categorizeScript);
+    assert.deepEqual(matches.map(game => game.game_id), [2]);
+});
+
+test('all-player matching applies to includes; any excluded player vetoes a game', () => {
+    const matches = filterGames(games, {
+        player: {match: 'all', include: ['Максим', 'Лиза'], exclude: ['Даня', 'Nobody']},
+    }, categorizeScript);
+    assert.deepEqual(matches.map(game => game.game_id), [1, 3]);
+});
+
+test('any-player matching still respects excluded players', () => {
+    const matches = filterGames(games, {
+        player: {match: 'any', include: ['Лиза', 'Даня'], exclude: ['Лиза']},
+    }, categorizeScript);
+    assert.deepEqual(matches.map(game => game.game_id), [2]);
+});
+
+test('an excluded co-storyteller vetoes an included co-storyteller', () => {
+    const matches = filterGames(games, {
+        storyteller: {include: ['Bea'], exclude: ['Alex']},
+    }, categorizeScript);
+    assert.deepEqual(matches.map(game => game.game_id), [3]);
+});
+
+test('role exclusions inspect history even when another role is included', () => {
+    const matches = filterGames(games, {
+        role: {include: ['Imp', 'Empath'], exclude: ['Artist']},
+    }, categorizeScript);
+    assert.deepEqual(matches.map(game => game.game_id), [3]);
+});
+
+test('exclusions canonicalize role spellings and take precedence over includes', () => {
+    const matches = filterGames([{
+        game_mode: 'Trouble Brewing',
+        players: [{name: 'Максим', role: 'Al-hadikhia'}],
+    }], {role: {include: ['Al-Hadikhia'], exclude: ['AL-HADIKHIA']}}, categorizeScript);
+    assert.deepEqual(matches, []);
+});
+
+test('all neutral filters return the full game history', () => {
+    assert.deepEqual(filterGames(games, {}, categorizeScript), games);
 });

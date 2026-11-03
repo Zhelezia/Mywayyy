@@ -452,7 +452,30 @@ html[data-colorblind="true"] .win-bar-evil { background: rgba(249, 115, 22, 0.35
 }
 
 .leaderboard-filter {
+    position: relative;
     min-width: 0;
+}
+
+.filter-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.filter-legend span {
+    white-space: nowrap;
+}
+
+.filter-include-label {
+    color: var(--accent-good);
+}
+
+.filter-exclude-label {
+    color: var(--accent-evil);
 }
 
 .leaderboard-filter > summary {
@@ -506,6 +529,9 @@ html[data-colorblind="true"] .win-bar-evil { background: rgba(249, 115, 22, 0.35
 }
 
 .filter-menu {
+    position: absolute;
+    z-index: 10;
+    width: max(100%, 280px);
     display: grid;
     gap: 8px;
     margin-top: 7px;
@@ -513,6 +539,11 @@ html[data-colorblind="true"] .win-bar-evil { background: rgba(249, 115, 22, 0.35
     border: 1px solid var(--border-color);
     border-radius: 6px;
     background: var(--bg-primary);
+    box-shadow: var(--shadow);
+}
+
+.leaderboard-filter:nth-last-child(-n+2) .filter-menu {
+    right: 0;
 }
 
 .filter-mode-label {
@@ -560,9 +591,14 @@ html[data-colorblind="true"] .win-bar-evil { background: rgba(249, 115, 22, 0.35
     border-color: var(--accent-blue);
 }
 
+.filter-option-actions button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
 .filter-options {
     display: flex;
-    max-height: 190px;
+    max-height: 260px;
     flex-direction: column;
     gap: 2px;
     overflow-y: auto;
@@ -574,22 +610,60 @@ html[data-colorblind="true"] .win-bar-evil { background: rgba(249, 115, 22, 0.35
 .filter-option {
     display: flex;
     align-items: center;
-    gap: 7px;
-    padding: 4px 5px;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px;
+    border: 1px solid transparent;
     border-radius: 3px;
+    background: transparent;
     color: var(--text-primary);
     cursor: pointer;
     font-size: 0.82rem;
     line-height: 1.25;
+    font-family: inherit;
+    text-align: left;
+    overflow-wrap: anywhere;
 }
 
 .filter-option:hover {
     background: var(--bg-secondary);
 }
 
-.filter-option input {
+.filter-option-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 auto;
-    accent-color: var(--accent-blue);
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--text-secondary);
+    border-radius: 3px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.filter-option[data-filter-state="include"] .filter-option-mark {
+    border-color: var(--accent-good);
+    color: var(--accent-good);
+}
+
+.filter-option[data-filter-state="exclude"] .filter-option-mark {
+    border-color: var(--accent-evil);
+    color: var(--accent-evil);
+}
+
+.filter-option[data-filter-state="include"],
+.filter-option[data-filter-state="exclude"] {
+    background: var(--bg-secondary);
+}
+
+.filter-empty {
+    margin: 0;
+    padding: 8px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
 }
 
 .filter-option[hidden] {
@@ -933,6 +1007,11 @@ footer a:hover {
 
     .leaderboard-filters {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filter-menu {
+        position: static;
+        width: 100%;
     }
 
     .leaderboard-table {

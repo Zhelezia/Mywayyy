@@ -54,8 +54,8 @@ export function getFilterOptions(games) {
 }
 
 /**
- * Return games matching every active filter. Selected values use OR by default;
- * a filter can opt into matching all values. Exclude mode inverts that match.
+ * Return games matching every active filter. Includes use OR by default, or AND
+ * for an all-player selection. Any excluded value always rules a game out.
  */
 export function filterGames(games, filters, categorizeScript) {
     const selections = {
@@ -79,19 +79,19 @@ export function filterGames(games, filters, categorizeScript) {
 }
 
 function normalizeSelection(selection) {
-    if (Array.isArray(selection)) return { mode: 'include', match: 'any', values: selection };
+    if (Array.isArray(selection)) return { include: selection, exclude: [], match: 'any' };
     return {
-        mode: selection?.mode === 'exclude' ? 'exclude' : 'include',
+        include: Array.isArray(selection?.include) ? selection.include : [],
+        exclude: Array.isArray(selection?.exclude) ? selection.exclude : [],
         match: selection?.match === 'all' ? 'all' : 'any',
-        values: Array.isArray(selection?.values) ? selection.values : [],
     };
 }
 
 function matchesSelection(selection, gameValues, normalize = value => value) {
-    if (!selection.values.length) return true;
-    const selectedValues = selection.values.map(normalize);
-    const hasMatch = selection.match === 'all'
-        ? selectedValues.every(value => gameValues.includes(value))
-        : gameValues.some(value => selectedValues.includes(value));
-    return selection.mode === 'exclude' ? !hasMatch : hasMatch;
+    const available = new Set(gameValues.map(normalize));
+    if (selection.exclude.some(value => available.has(normalize(value)))) return false;
+    if (!selection.include.length) return true;
+    return selection.match === 'all'
+        ? selection.include.every(value => available.has(normalize(value)))
+        : selection.include.some(value => available.has(normalize(value)));
 }
