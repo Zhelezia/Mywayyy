@@ -8,7 +8,7 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/analytics.css">
+    <link rel="stylesheet" href="css/analytics.css?v=min-5-analytics-2026-11-09">
 
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -136,6 +136,12 @@
 
             <!-- Scripts Tab -->
             <div id="scripts-tab" class="tab-content active">
+                <div class="analytics-min-games-row">
+                    <label class="analytics-min-games-option">
+                        <input type="checkbox" id="hide-scripts-under-5-games">
+                        Hide scripts with fewer than 5 games
+                    </label>
+                </div>
                 <div class="table-container">
                     <table class="analytics-table" id="scripts-table">
                         <thead>
@@ -178,6 +184,12 @@
                             <option value="Travellers">Travellers</option>
                         </select>
                     </div>
+                </div>
+                <div class="analytics-min-games-row">
+                    <label class="analytics-min-games-option">
+                        <input type="checkbox" id="hide-roles-under-5-games">
+                        Hide roles with fewer than 5 games
+                    </label>
                 </div>
                 <div class="table-container">
                     <table class="analytics-table" id="characters-table">
@@ -703,7 +715,7 @@
     </div>
 
     <!-- Main Application Script -->
-    <script type="module" src="js/analyticsApp.js?v=simultaneous-role-elo-2026-11-09"></script>
+    <script type="module" src="js/analyticsApp.js?v=min-5-analytics-2026-11-09"></script>
     <script src="js/settings.js"></script>
 </body>
 </html>

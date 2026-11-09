@@ -128,6 +128,8 @@ function setupEventListeners() {
     // Character filters
     document.getElementById('script-filter').addEventListener('change', updateCharactersTab);
     document.getElementById('role-type-filter').addEventListener('change', updateCharactersTab);
+    document.getElementById('hide-scripts-under-5-games').addEventListener('change', updateScriptsTab);
+    document.getElementById('hide-roles-under-5-games').addEventListener('change', updateCharactersTab);
 
     // Player selection
     document.getElementById('player-select').addEventListener('change', updatePlayerTab);
@@ -383,9 +385,10 @@ function updateScriptsTab() {
     const sortAsc = currentSortAscending['scripts'] || false;
 
     const entries = currentAnalytics.getScriptStatsArray(sortCol, sortAsc);
+    const hideLowCountScripts = document.getElementById('hide-scripts-under-5-games').checked;
 
     // Add script rows
-    for (const [script, stats] of entries) {
+    for (const [script, stats] of entries.filter(([, stats]) => !hideLowCountScripts || stats.games >= 5)) {
         const row = document.createElement('tr');
         row.style.cursor = 'pointer';
         const modLabel = stats.mod_games > 0 ? stats.mod_games : '-';
@@ -455,9 +458,11 @@ function updateCharactersTab() {
     const roleTypeFilter = document.getElementById('role-type-filter').value;
 
     const characters = currentAnalytics.getCharacterStats(scriptFilter, roleTypeFilter);
+    const hideLowCountRoles = document.getElementById('hide-roles-under-5-games').checked;
+    const visibleCharacters = characters.filter(char => !hideLowCountRoles || char.games >= 5);
 
     // Add ELO ratings to each character
-    const charactersWithElo = characters.map(char => {
+    const charactersWithElo = visibleCharacters.map(char => {
         const eloData = characterEloRatings[char.character];
         return {
             ...char,
@@ -495,6 +500,12 @@ function updateCharactersTab() {
             showCharacterDetail(char.character, char.role_type, char.elo);
         });
 
+        tbody.appendChild(row);
+    }
+
+    if (hideLowCountRoles && charactersWithElo.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="6" class="analytics-empty">No roles have 5 or more games in this selection.</td>';
         tbody.appendChild(row);
     }
 }

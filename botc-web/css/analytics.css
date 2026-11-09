@@ -283,6 +283,31 @@
     margin-bottom: 1.5rem;
 }
 
+.analytics-min-games-row {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0 0 0.75rem;
+}
+
+.analytics-min-games-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.analytics-min-games-option input {
+    accent-color: var(--accent-blue);
+}
+
+.analytics-empty {
+    padding: 18px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
 .filter-group {
     display: flex;
     align-items: center;
@@ -911,3 +936,4 @@
 #storytellers-body tr:hover {
     background: rgba(var(--accent-rgb), 0.1);
 }
+
