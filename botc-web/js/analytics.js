@@ -451,6 +451,7 @@ export class StorytellerAnalytics {
                 if (!this.playerStats[name]) {
                     this.playerStats[name] = {
                         games: 0,
+                        decisive_games: 0,
                         wins: 0,
                         good_games: 0,
                         good_wins: 0,
@@ -464,19 +465,20 @@ export class StorytellerAnalytics {
                 const entry = this.playerStats[name];
                 entry.games++;
 
-                if (team && team === winningTeam) {
-                    entry.wins++;
+                if (team) {
+                    entry.decisive_games++;
+                    if (team === winningTeam) entry.wins++;
                 }
 
                 // Alignment counts follow role seats, while a player remains
                 // one overall game appearance.
-                for (const seat of seats) {
-                    if (seat.team === 'Good') {
+                for (const alignment of teams) {
+                    if (alignment === 'Good') {
                         entry.good_games++;
-                        if (seat.team === winningTeam) entry.good_wins++;
-                    } else if (seat.team === 'Evil') {
+                        if (alignment === winningTeam) entry.good_wins++;
+                    } else if (alignment === 'Evil') {
                         entry.evil_games++;
-                        if (seat.team === winningTeam) entry.evil_wins++;
+                        if (alignment === winningTeam) entry.evil_wins++;
                     }
                 }
 
@@ -484,6 +486,7 @@ export class StorytellerAnalytics {
                 if (!entry.scripts[script]) {
                     entry.scripts[script] = {
                         games: 0,
+                        decisive_games: 0,
                         wins: 0,
                         good_games: 0,
                         good_wins: 0,
@@ -492,16 +495,17 @@ export class StorytellerAnalytics {
                     };
                 }
                 entry.scripts[script].games++;
-                if (team && team === winningTeam) {
-                    entry.scripts[script].wins++;
+                if (team) {
+                    entry.scripts[script].decisive_games++;
+                    if (team === winningTeam) entry.scripts[script].wins++;
                 }
-                for (const seat of seats) {
-                    if (seat.team === 'Good') {
+                for (const alignment of teams) {
+                    if (alignment === 'Good') {
                         entry.scripts[script].good_games++;
-                        if (seat.team === winningTeam) entry.scripts[script].good_wins++;
-                    } else if (seat.team === 'Evil') {
+                        if (alignment === winningTeam) entry.scripts[script].good_wins++;
+                    } else if (alignment === 'Evil') {
                         entry.scripts[script].evil_games++;
-                        if (seat.team === winningTeam) entry.scripts[script].evil_wins++;
+                        if (alignment === winningTeam) entry.scripts[script].evil_wins++;
                     }
                 }
 

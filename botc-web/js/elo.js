@@ -77,13 +77,13 @@ export class Player {
         if (assignmentTeams.size === 1) {
             this.gamesOverallDecisive += 1;
         }
-        for (const assignment of assignments) {
-            if (assignment.team === "Good") {
+        for (const team of assignmentTeams) {
+            if (team === "Good") {
                 this.gamesGood += 1;
-                if (assignment.team === winningTeam) this.winsGood += 1;
-            } else if (assignment.team === "Evil") {
+                if (team === winningTeam) this.winsGood += 1;
+            } else if (team === "Evil") {
                 this.gamesEvil += 1;
-                if (assignment.team === winningTeam) this.winsEvil += 1;
+                if (team === winningTeam) this.winsEvil += 1;
             }
         }
 

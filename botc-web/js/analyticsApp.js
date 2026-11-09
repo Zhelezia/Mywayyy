@@ -14,7 +14,7 @@ import {
     analyzeHeadToHead,
     calculateCharacterElo,
     getCharacterScriptBreakdown
-} from './analytics.js?v=simultaneous-role-elo-2026-11-09';
+} from './analytics.js?v=simultaneous-role-elo-v2-2026-11-09';
 
 function recordedRoles(player) {
     return new Set([
@@ -524,7 +524,7 @@ function updatePlayerTab() {
     container.style.display = 'block';
 
     // Update summary cards
-    const winPct = stats.games > 0 ? (stats.wins / stats.games * 100).toFixed(1) : '0.0';
+    const winPct = stats.decisive_games > 0 ? (stats.wins / stats.decisive_games * 100).toFixed(1) : '0.0';
     const goodPct = stats.good_games > 0 ? (stats.good_wins / stats.good_games * 100).toFixed(1) : '0.0';
     const evilPct = stats.evil_games > 0 ? (stats.evil_wins / stats.evil_games * 100).toFixed(1) : '0.0';
 
@@ -551,7 +551,7 @@ function updatePlayerScriptsTable(stats) {
     tbody.innerHTML = '';
 
     // Add "All" row first
-    const allWinPct = stats.games > 0 ? (stats.wins / stats.games * 100).toFixed(1) : '0.0';
+    const allWinPct = stats.decisive_games > 0 ? (stats.wins / stats.decisive_games * 100).toFixed(1) : '0.0';
     const allGoodPct = stats.good_games > 0 ? (stats.good_wins / stats.good_games * 100).toFixed(1) : '0.0';
     const allEvilPct = stats.evil_games > 0 ? (stats.evil_wins / stats.evil_games * 100).toFixed(1) : '0.0';
 
@@ -578,13 +578,13 @@ function updatePlayerScriptsTable(stats) {
 
     // Sort scripts by win percentage
     const scriptEntries = Object.entries(stats.scripts).sort((a, b) => {
-        const aPct = a[1].games > 0 ? a[1].wins / a[1].games : 0;
-        const bPct = b[1].games > 0 ? b[1].wins / b[1].games : 0;
+        const aPct = a[1].decisive_games > 0 ? a[1].wins / a[1].decisive_games : 0;
+        const bPct = b[1].decisive_games > 0 ? b[1].wins / b[1].decisive_games : 0;
         return bPct - aPct;
     });
 
     for (const [script, s] of scriptEntries) {
-        const winPct = s.games > 0 ? (s.wins / s.games * 100).toFixed(1) : '0.0';
+        const winPct = s.decisive_games > 0 ? (s.wins / s.decisive_games * 100).toFixed(1) : '0.0';
         const goodPct = s.good_games > 0 ? (s.good_wins / s.good_games * 100).toFixed(1) : '0.0';
         const evilPct = s.evil_games > 0 ? (s.evil_wins / s.evil_games * 100).toFixed(1) : '0.0';
 
