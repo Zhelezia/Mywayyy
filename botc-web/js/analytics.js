@@ -265,6 +265,14 @@ function rolesInPlayerRecord(player) {
     ].filter(role => typeof role === 'string' && role.trim()))];
 }
 
+function teamsForPlayerRole(player, role) {
+    const key = characterRoleKey(role);
+    const teams = (Array.isArray(player.role_assignments) ? player.role_assignments : [])
+        .filter(item => item && characterRoleKey(item.role) === key && item.team)
+        .map(item => item.team);
+    return teams.length ? teams : [player.team];
+}
+
 /**
  * Extract all unique storytellers from games.
  * @param {Array} games - Array of game objects
@@ -707,24 +715,21 @@ export class StorytellerAnalytics {
         return entries;
     }
 
-    /**
-     * Get character statistics for given filters.
-     * @param {string} scriptFilter - 'All', 'Normal', 'Teensyville', or specific script name
-     * @param {string} roleTypeFilter - 'All' or specific role type
-     * @returns {Array} Array of character stat objects
-     */
-    getCharacterStats(scriptFilter = 'All', roleTypeFilter = 'All') {
-        // Filter games based on script selection
-        let filteredGames;
+    /** Get the games included in the character table's script selection. */
+    getCharacterGames(scriptFilter = 'All') {
         if (scriptFilter === 'All') {
-            filteredGames = this.games;
+            return this.games;
         } else if (scriptFilter === 'Normal') {
-            filteredGames = this.games.filter(g => categorizeScript(g.game_mode || '') === 'Normal');
+            return this.games.filter(g => categorizeScript(g.game_mode || '') === 'Normal');
         } else if (scriptFilter === 'Teensyville') {
-            filteredGames = this.games.filter(g => categorizeScript(g.game_mode || '') === 'Teensyville');
-        } else {
-            filteredGames = this.games.filter(g => (g.game_mode || '') === scriptFilter);
+            return this.games.filter(g => categorizeScript(g.game_mode || '') === 'Teensyville');
         }
+        return this.games.filter(g => (g.game_mode || '') === scriptFilter);
+    }
+
+    /** Get character statistics for the selected script and role type. */
+    getCharacterStats(scriptFilter = 'All', roleTypeFilter = 'All') {
+        const filteredGames = this.getCharacterGames(scriptFilter);
 
         // Aggregate per-character stats
         const charStats = {};
@@ -738,9 +743,7 @@ export class StorytellerAnalytics {
                     const role = canonicalCharacterName(sourceRole);
                     if (!role) continue;
                     if (!roleTeams[role]) roleTeams[role] = [];
-                    const team = (p.role_assignments || []).find(item =>
-                        characterRoleKey(item.role) === characterRoleKey(sourceRole))?.team;
-                    roleTeams[role].push(team || p.team);
+                    roleTeams[role].push(...teamsForPlayerRole(p, sourceRole));
                 }
             }
 
@@ -1046,7 +1049,8 @@ export function getCharacterScriptBreakdown(games, characterName) {
 
         // Find all players who played this character in this game
         const targetRole = characterRoleKey(characterName);
-        const playersWithChar = players.filter(p => characterRoleKey(p.role) === targetRole);
+        const playersWithChar = players.filter(p =>
+            rolesInPlayerRecord(p).some(role => characterRoleKey(role) === targetRole));
 
         // Skip games where this character doesn't appear
         if (playersWithChar.length === 0) continue;
@@ -1061,7 +1065,7 @@ export function getCharacterScriptBreakdown(games, characterName) {
 
         // Did the character win? Check if any player with this character was on winning team
         // (For Legion/Village Idiot, they should all be on same team anyway)
-        const charWon = playersWithChar.some(p => p.team === winningTeam);
+        const charWon = playersWithChar.some(p => teamsForPlayerRole(p, characterName).includes(winningTeam));
 
         if (charWon) {
             totalWins++;

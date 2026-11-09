@@ -14,7 +14,7 @@ import {
     analyzeHeadToHead,
     calculateCharacterElo,
     getCharacterScriptBreakdown
-} from './analytics.js?v=simultaneous-role-elo-v2-2026-11-09';
+} from './analytics.js?v=analytics-corrections-2026-11-09';
 
 function recordedRoles(player) {
     return new Set([
@@ -381,8 +381,8 @@ function updateScriptsTab() {
     const tbody = document.getElementById('scripts-body');
     tbody.innerHTML = '';
 
-    const sortCol = currentSortColumn['scripts'] || 'good_pct';
-    const sortAsc = currentSortAscending['scripts'] || false;
+    const sortCol = currentSortColumn['scripts-table'] || 'good_pct';
+    const sortAsc = currentSortAscending['scripts-table'] || false;
 
     const entries = currentAnalytics.getScriptStatsArray(sortCol, sortAsc);
     const hideLowCountScripts = document.getElementById('hide-scripts-under-5-games').checked;
@@ -507,6 +507,10 @@ function updateCharactersTab() {
         const row = document.createElement('tr');
         row.innerHTML = '<td colspan="6" class="analytics-empty">No roles have 5 or more games in this selection.</td>';
         tbody.appendChild(row);
+    }
+
+    if (sortCol && sortCol !== 'elo' && charactersWithElo.length > 0) {
+        sortCharactersTable(sortCol, currentSortAscending['characters-table']);
     }
 }
 
@@ -1459,8 +1463,9 @@ function showCharacterDetail(characterName, roleType, elo) {
     const modal = document.getElementById('character-detail-modal');
     if (!modal) return;
 
-    // Get detailed breakdown from current filtered games
-    const breakdown = getCharacterScriptBreakdown(currentAnalytics.games, characterName);
+    // Use the same script selection as the character table.
+    const gamesInSelection = currentAnalytics.getCharacterGames(document.getElementById('script-filter').value);
+    const breakdown = getCharacterScriptBreakdown(gamesInSelection, characterName);
 
     // Populate header
     document.getElementById('char-detail-name').textContent = characterName.replace(/_/g, ' ');
@@ -1541,7 +1546,7 @@ function showCharacterDetail(characterName, roleType, elo) {
         gamesBtn.onclick = () => {
             closeCharacterDetail();
             const targetRole = characterRoleKey(characterName);
-            const games = currentAnalytics.games.filter(g =>
+            const games = gamesInSelection.filter(g =>
                 g.players && g.players.some(p => playerHasRole(p, targetRole)));
             showGameHistory(characterName.replace(/_/g, ' '), roleType, games);
         };
