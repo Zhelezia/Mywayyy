@@ -2,12 +2,16 @@
  * Blood on the Clocktower Stats - Main Application
  */
 
-import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=simultaneous-role-elo-2026-11-09';
-import { fetchGames, fetchScripts, isDemoMode } from './supabase.js';
-import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=simultaneous-role-elo-2026-11-09';
+import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=audit-2026-11-09';
+import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-2026-11-09';
+import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=audit-2026-11-09';
 import { categorizeScript, setScriptCategories } from './config.js';
 import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=simultaneous-role-elo-2026-11-09';
 import SITE_CONFIG from './site-config.js';
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+}
 
 // Global state
 let gameLog = [];
@@ -483,7 +487,7 @@ function renderLeaderboard() {
 
         row.innerHTML = `
             <td class="rank ${rankClass}">${player.rank}</td>
-            <td class="player-name">${formatPlayerName(player.name)}</td>
+            <td class="player-name">${escapeHtml(formatPlayerName(player.name))}</td>
             <td class="rating">${player.rating.toFixed(1)}</td>
             <td class="delta ${deltaTextClass}">${deltaStr}</td>
             <td class="pct">

@@ -387,6 +387,7 @@ export class StorytellerAnalytics {
         games = filterByGameType(games, gameTypeFilter);
 
         // Filter by modifier
+        this.modifierGames = games;
         this.games = filterByModifier(games, modifierFilter);
 
         this.scriptStats = {};
@@ -518,17 +519,14 @@ export class StorytellerAnalytics {
                 }
 
                 // Role counts
-                const rolesList = rolesInPlayerRecord(p);
-                for (const role of rolesList) {
-                    if (!role) continue;
-                    const canonicalRole = canonicalCharacterName(role);
+                const rolesList = new Map(rolesInPlayerRecord(p).map(role => [characterRoleKey(role), canonicalCharacterName(role)]));
+                for (const canonicalRole of rolesList.values()) {
+                    if (!canonicalRole) continue;
                     if (!entry.roles[canonicalRole]) {
                         entry.roles[canonicalRole] = { games: 0, wins: 0 };
                     }
                     entry.roles[canonicalRole].games++;
-                    const seatTeam = (p.role_assignments || []).find(item =>
-                        characterRoleKey(item.role) === characterRoleKey(role))?.team || team;
-                    if (seatTeam && seatTeam === winningTeam) {
+                    if (teamsForPlayerRole(p, canonicalRole).includes(winningTeam)) {
                         entry.roles[canonicalRole].wins++;
                     }
                 }
@@ -540,13 +538,8 @@ export class StorytellerAnalytics {
      * Compute per-modifier statistics (always from full storyteller-filtered set, ignoring modifier filter).
      */
     _computeModifierStats(allGames, storytellerName) {
-        // Use storyteller-filtered but NOT modifier-filtered games
-        let games;
-        if (storytellerName === 'All') {
-            games = allGames;
-        } else {
-            games = allGames.filter(g => hasStoryteller(g, storytellerName));
-        }
+        // Preserve storyteller and game-type filters, ignoring only modifier selection.
+        const games = this.modifierGames;
 
         for (const game of games) {
             if (!game.modifiers) continue;
@@ -579,12 +572,7 @@ export class StorytellerAnalytics {
      * Get modifier stats summary (total counts).
      */
     getModifierSummary(allGames, storytellerName) {
-        let games;
-        if (storytellerName === 'All') {
-            games = allGames;
-        } else {
-            games = allGames.filter(g => hasStoryteller(g, storytellerName));
-        }
+        const games = this.modifierGames;
 
         let totalMod = 0, fabledCount = 0, loricsCount = 0;
         for (const g of games) {
@@ -819,15 +807,16 @@ export function analyzeHeadToHead(games, playerA, playerB) {
 
     for (const game of games) {
         const players = game.players || [];
-        let aTeam = null;
-        let bTeam = null;
+        const aPlayers = players.filter(p => p.name === playerA);
+        const bPlayers = players.filter(p => p.name === playerB);
+        const uniqueTeam = list => {
+            const teams = new Set(list.flatMap(alignmentSeats).map(seat => seat.team));
+            return teams.size === 1 ? [...teams][0] : null;
+        };
+        const aTeam = uniqueTeam(aPlayers);
+        const bTeam = uniqueTeam(bPlayers);
 
-        for (const p of players) {
-            if (p.name === playerA) aTeam = p.team;
-            if (p.name === playerB) bTeam = p.team;
-        }
-
-        if (aTeam && bTeam) {
+        if (aPlayers.length && bPlayers.length) {
             togetherGames.push({
                 game_id: game.game_id,
                 a_team: aTeam,
@@ -838,8 +827,9 @@ export function analyzeHeadToHead(games, playerA, playerB) {
     }
 
     // Split into same team vs opposite teams
-    const sameTeamGames = togetherGames.filter(g => g.a_team === g.b_team);
-    const oppositeTeamGames = togetherGames.filter(g => g.a_team !== g.b_team);
+    const decisiveGames = togetherGames.filter(g => g.a_team && g.b_team);
+    const sameTeamGames = decisiveGames.filter(g => g.a_team === g.b_team);
+    const oppositeTeamGames = decisiveGames.filter(g => g.a_team !== g.b_team);
 
     // Same team breakdown
     const sameTeamBothGood = sameTeamGames.filter(g => g.a_team === 'Good');
@@ -865,6 +855,7 @@ export function analyzeHeadToHead(games, playerA, playerB) {
 
     return {
         total_together: togetherGames.length,
+        unclassified_games: togetherGames.length - decisiveGames.length,
         same_team: {
             games: sameTeamGames.length,
             wins: sameTeamWinsBothGood + sameTeamWinsBothEvil,

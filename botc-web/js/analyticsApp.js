@@ -2,7 +2,7 @@
  * Analytics Application - Main entry point for the analytics dashboard.
  */
 
-import { fetchGames, fetchScripts, isDemoMode } from './supabase.js';
+import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-2026-11-09';
 import { setScriptCategories } from './config.js';
 import SITE_CONFIG from './site-config.js';
 import { characterRoleKey } from './roleNames.mjs';
@@ -14,7 +14,11 @@ import {
     analyzeHeadToHead,
     calculateCharacterElo,
     getCharacterScriptBreakdown
-} from './analytics.js?v=analytics-corrections-2026-11-09';
+} from './analytics.js?v=audit-2026-11-09';
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+}
 
 function recordedRoles(player) {
     return new Set([
@@ -307,9 +311,12 @@ function onFilterChange() {
     updateScriptsTab();
     updateCharactersTab();
     updateModifiersTab();
+    populateGameSizePlayerFilter();
     updateGameSizeTab();
     updateStorytellersTab();
-    populateGameSizePlayerFilter();
+
+    document.getElementById('h2h-results').style.display = 'none';
+    document.getElementById('h2h-no-results').style.display = 'block';
 
     // Reset player tab
     document.getElementById('player-select').value = '';
@@ -393,7 +400,7 @@ function updateScriptsTab() {
         row.style.cursor = 'pointer';
         const modLabel = stats.mod_games > 0 ? stats.mod_games : '-';
         row.innerHTML = `
-            <td>${script || '(Unknown)'}</td>
+            <td>${escapeHtml(script || '(Unknown)')}</td>
             <td><span class="category-badge ${stats.category.toLowerCase()}">${stats.category}</span></td>
             <td class="good-text">${stats.good_pct.toFixed(1)}%</td>
             <td class="evil-text">${stats.evil_pct.toFixed(1)}%</td>
@@ -487,7 +494,7 @@ function updateCharactersTab() {
         const eloClass = char.elo >= 1500 ? 'elo-positive' : 'elo-negative';
 
         row.innerHTML = `
-            <td>${char.character}</td>
+            <td>${escapeHtml(char.character)}</td>
             <td><span class="role-type-badge ${char.role_type.toLowerCase()}">${char.role_type}</span></td>
             <td class="${eloClass}">${char.elo}</td>
             <td>${char.win_pct.toFixed(1)}%</td>
@@ -606,7 +613,7 @@ function updatePlayerScriptsTable(stats) {
         const row = document.createElement('tr');
         row.style.cursor = 'pointer';
         row.innerHTML = `
-            <td>${script || '(Unknown)'}</td>
+            <td>${escapeHtml(script || '(Unknown)')}</td>
             <td>${winPct}%</td>
             <td>${s.games}</td>
             <td class="good-text">${goodPct}%</td>
@@ -643,7 +650,7 @@ function updatePlayerRolesTable(stats) {
         const row = document.createElement('tr');
         row.style.cursor = 'pointer';
         row.innerHTML = `
-            <td>${role}</td>
+            <td>${escapeHtml(role)}</td>
             <td><span class="role-type-badge ${roleType.toLowerCase()}">${roleType}</span></td>
             <td>${winPct}%</td>
             <td>${r.wins}</td>
@@ -690,6 +697,8 @@ function analyzeH2H() {
     document.getElementById('h2h-player1-name').textContent = player1.replace(/_/g, ' ');
     document.getElementById('h2h-player2-name').textContent = player2.replace(/_/g, ' ');
     document.getElementById('h2h-total-games').textContent = results.total_together;
+    document.getElementById('h2h-mixed-games').textContent = results.unclassified_games
+        ? `${results.unclassified_games} game(s) involve mixed or unknown teams and are omitted from team comparisons.` : '';
 
     // Same team stats
     document.getElementById('same-team-games').textContent = results.same_team.games;
@@ -731,7 +740,13 @@ function analyzeH2H() {
 
     // Make H2H stat cards clickable
     const bothIn = g => g.players && g.players.some(p => p.name === player1) && g.players.some(p => p.name === player2);
-    const getTeam = (g, name) => { const p = g.players.find(p => p.name === name); return p ? p.team : null; };
+    const getTeam = (g, name) => {
+        const teams = new Set(g.players.filter(p => p.name === name).flatMap(p => {
+            const seats = (p.role_assignments || []).filter(a => a && (a.team === 'Good' || a.team === 'Evil'));
+            return seats.length ? seats.map(a => a.team) : (p.team === 'Good' || p.team === 'Evil' ? [p.team] : []);
+        }));
+        return teams.size === 1 ? [...teams][0] : null;
+    };
     const p1Name = player1.replace(/_/g, ' ');
     const p2Name = player2.replace(/_/g, ' ');
 
@@ -748,7 +763,7 @@ function analyzeH2H() {
     makeClickable(
         document.querySelector('#h2h-same-team-content .h2h-stats-row .h2h-stat-card:first-child'),
         `${p1Name} & ${p2Name} — Same Team`,
-        g => getTeam(g, player1) === getTeam(g, player2)
+        g => getTeam(g, player1) !== null && getTeam(g, player1) === getTeam(g, player2)
     );
     makeClickable(
         document.querySelector('#h2h-same-team-content .h2h-stat-card.good'),
@@ -763,7 +778,7 @@ function analyzeH2H() {
 
     // Opposite teams — all cards
     const oppPlayers = document.querySelectorAll('.h2h-opp-player');
-    const oppFilter = g => getTeam(g, player1) !== getTeam(g, player2);
+    const oppFilter = g => getTeam(g, player1) !== null && getTeam(g, player2) !== null && getTeam(g, player1) !== getTeam(g, player2);
 
     // P1 and P2 overall cards
     if (oppPlayers[0]) {
@@ -835,9 +850,9 @@ function showGameHistory(title, badge, games) {
             row.innerHTML = `
                 <td>#${g.game_id}</td>
                 <td>${g.date ? new Date(g.date).toLocaleDateString() : '-'}</td>
-                <td class="${g.winning_team === 'Good' ? 'good-text' : 'evil-text'}">${g.winning_team}</td>
-                <td>${(g.story_teller || '-').replace(/_/g, ' ').replace(/\+/g, ', ')}</td>
-                <td>${modTags.length > 0 ? modTags.join(', ') : '-'}</td>
+                <td class="${g.winning_team === 'Good' ? 'good-text' : 'evil-text'}">${escapeHtml(g.winning_team)}</td>
+                <td>${escapeHtml((g.story_teller || '-').replace(/_/g, ' ').replace(/\+/g, ', '))}</td>
+                <td>${escapeHtml(modTags.length > 0 ? modTags.join(', ') : '-')}</td>
             `;
             row.addEventListener('click', () => showGameDetail(g));
             gamesBody.appendChild(row);
@@ -908,8 +923,8 @@ function showGameDetail(game) {
     } else {
         modSection.style.display = 'block';
         const tags = [];
-        for (const f of fabled) tags.push(`<span class="char-player-chip"><small class="mod-type-label">Fabled:</small> ${f.replace(/_/g, ' ')}</span>`);
-        for (const l of lorics) tags.push(`<span class="char-player-chip"><small class="mod-type-label">Loric:</small> ${l.replace(/_/g, ' ')}</span>`);
+        for (const f of fabled) tags.push(`<span class="char-player-chip"><small class="mod-type-label">Fabled:</small> ${escapeHtml(f.replace(/_/g, ' '))}</span>`);
+        for (const l of lorics) tags.push(`<span class="char-player-chip"><small class="mod-type-label">Loric:</small> ${escapeHtml(l.replace(/_/g, ' '))}</span>`);
         modList.innerHTML = tags.join('');
     }
 
@@ -926,17 +941,17 @@ function showGameDetail(game) {
                 : (p.roles_in_play && p.roles_in_play.length > 1
                     ? p.roles_in_play.join(' + ')
                     : ((p.roles && p.roles.length > 0) ? p.roles.join(' → ') : (p.role || '-')));
-            let nameHtml = (p.name || '-').replace(/_/g, ' ');
+            let nameHtml = escapeHtml((p.name || '-').replace(/_/g, ' '));
 
             // Flag team change
             if (p.initial_team && p.initial_team !== p.team) {
-                nameHtml += ` <span class="team-change-badge">${p.initial_team} → ${p.team}</span>`;
+                nameHtml += ` <span class="team-change-badge">${escapeHtml(p.initial_team)} → ${escapeHtml(p.team)}</span>`;
             }
 
             // Show role progression if multiple roles
-            let rolesHtml = roles.replace(/_/g, ' ');
+            let rolesHtml = escapeHtml(roles.replace(/_/g, ' '));
             if (!teamAssignments.length && p.roles && p.roles.length > 1) {
-                rolesHtml = p.roles.map(r => r.replace(/_/g, ' ')).join(' <span class="role-arrow">→</span> ');
+                rolesHtml = p.roles.map(r => escapeHtml(r.replace(/_/g, ' '))).join(' <span class="role-arrow">→</span> ');
             }
 
             row.innerHTML = `<td>${nameHtml}</td><td>${rolesHtml}</td>`;
@@ -1032,7 +1047,7 @@ function renderModifierTable(tbodyId, stats, modType) {
         const row = document.createElement('tr');
         row.style.cursor = 'pointer';
         row.innerHTML = `
-            <td>${name.replace(/_/g, ' ')}</td>
+            <td>${escapeHtml(name.replace(/_/g, ' '))}</td>
             <td class="good-text">${goodPct}%</td>
             <td class="evil-text">${evilPct}%</td>
             <td>${data.good_wins}</td>
@@ -1040,7 +1055,7 @@ function renderModifierTable(tbodyId, stats, modType) {
             <td>${data.games}</td>
         `;
         row.addEventListener('click', () => {
-            const games = currentAnalytics.games.filter(g => {
+            const games = currentAnalytics.modifierGames.filter(g => {
                 if (!g.modifiers) return false;
                 const list = modType === 'fabled' ? (g.modifiers.fabled || []) : (g.modifiers.lorics || []);
                 return list.includes(name);
@@ -1049,6 +1064,10 @@ function renderModifierTable(tbodyId, stats, modType) {
             showGameHistory(name.replace(/_/g, ' '), typeLabel, games);
         });
         tbody.appendChild(row);
+    }
+    const table = tbody.closest('table');
+    if (currentSortColumn[table.id]) {
+        sortGenericTable(table, currentSortColumn[table.id], currentSortAscending[table.id]);
     }
 }
 
@@ -1069,6 +1088,15 @@ const EVIL_TEAM_BY_SIZE = {
     13: '1 Demon, 3 Minions', 14: '1 Demon, 3 Minions', 15: '1 Demon, 3 Minions'
 };
 
+function gameSeatCount(game) {
+    return (game.players || []).reduce((count, player) => {
+        const assignments = Array.isArray(player.role_assignments)
+            ? player.role_assignments.filter(item => item && (item.team === 'Good' || item.team === 'Evil'))
+            : [];
+        return count + (assignments.length || 1);
+    }, 0);
+}
+
 /**
  * Update the game size tab.
  */
@@ -1085,7 +1113,7 @@ function updateGameSizeTab() {
         // Apply player filter
         if (playerFilter !== 'All' && !g.players.some(p => p.name === playerFilter)) continue;
 
-        const size = g.players.length;
+        const size = gameSeatCount(g);
         if (!bySize[size]) bySize[size] = { games: 0, good_wins: 0, evil_wins: 0 };
         bySize[size].games++;
         if (g.winning_team === 'Good') bySize[size].good_wins++;
@@ -1129,7 +1157,7 @@ function updateGameSizeTab() {
 
         row.addEventListener('click', () => {
             const games = currentAnalytics.games.filter(g => {
-                if (!g.players || g.players.length !== size) return false;
+                if (!g.players || gameSeatCount(g) !== size) return false;
                 if (playerFilter !== 'All' && !g.players.some(p => p.name === playerFilter)) return false;
                 return true;
             });
@@ -1202,7 +1230,7 @@ function updateStorytellersTab() {
         const row = document.createElement('tr');
         row.style.cursor = 'pointer';
         row.innerHTML = `
-            <td>${s.name.replace(/_/g, ' ')}</td>
+            <td>${escapeHtml(s.name.replace(/_/g, ' '))}</td>
             <td>${s.games}</td>
             <td class="good-text">${s.good_pct.toFixed(1)}%</td>
             <td class="evil-text">${s.evil_pct.toFixed(1)}%</td>
@@ -1356,9 +1384,11 @@ function handleSort(th) {
     // Re-render appropriate tab
     if (tableId === 'scripts-table') {
         updateScriptsTab();
+    } else if (tableId === 'storytellers-table') {
+        updateStorytellersTab();
     } else if (tableId === 'characters-table') {
         sortCharactersTable(sortKey, currentSortAscending[tableId]);
-    } else if (tableId === 'player-scripts-table' || tableId === 'player-roles-table') {
+    } else if (['player-scripts-table', 'player-roles-table', 'fabled-table', 'lorics-table'].includes(tableId)) {
         sortGenericTable(table, sortKey, currentSortAscending[tableId]);
     }
 }
@@ -1535,7 +1565,7 @@ function showCharacterDetail(characterName, roleType, elo) {
         for (const [player, count] of breakdown.players) {
             const tag = document.createElement('span');
             tag.className = 'char-player-tag';
-            tag.innerHTML = `${player.replace(/_/g, ' ')}<span class="play-count">(${count})</span>`;
+            tag.innerHTML = `${escapeHtml(player.replace(/_/g, ' '))}<span class="play-count">(${count})</span>`;
             playersDiv.appendChild(tag);
         }
     }

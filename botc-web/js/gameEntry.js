@@ -18,7 +18,7 @@ import {
     fetchScripts,
     addScript,
     deleteScript
-} from './supabase.js';
+} from './supabase.js?v=audit-2026-11-09';
 
 import { initAutocomplete } from './autocomplete.js';
 import { FABLED, LORICS } from './config.js';
@@ -43,6 +43,13 @@ let newScriptError, newScriptSuccess;
 // Edit mode state
 let editMode = false;
 let currentEditGameId = null;
+let originalEditGame = null;
+let originalEditLines = null;
+
+function linesByPlayerName(...texts) {
+    return new Map(texts.flatMap(text => text.split('\n')).map(line => line.trim()).filter(Boolean)
+        .map(line => [line.split(/\s+/)[0], line]));
+}
 
 /**
  * Initialize the game entry module
@@ -425,7 +432,10 @@ function parseTeamInput(text) {
                 const team = capitalize(item.slice(separator + 1));
                 if (team !== 'Good' && team !== 'Evil') return null;
                 return { role: standardizeRole(item.slice(0, separator)), team };
-            }).filter(Boolean);
+            });
+            if (roleAssignments.some(item => !item || !item.role)) {
+                throw new Error(`Invalid simultaneous roles for ${name}. Use Role@Good+Role@Evil.`);
+            }
             if (roleAssignments.length) {
                 const teams = new Set(roleAssignments.map(item => item.team));
                 players.push({
@@ -544,12 +554,28 @@ async function submitGameForm() {
     }
 
     // Parse teams
-    const team1Players = parseTeamInput(team1Text);
-    const team2Players = parseTeamInput(team2Text);
+    let team1Players, team2Players;
+    try {
+        team1Players = parseTeamInput(team1Text);
+        team2Players = parseTeamInput(team2Text);
+    } catch (error) {
+        showError(submitError, error.message);
+        return;
+    }
 
     if (team1Players.length === 0 || team2Players.length === 0) {
         showError(submitError, 'Please enter at least one player per team');
         return;
+    }
+
+    const playerNames = new Set();
+    for (const player of [...team1Players, ...team2Players]) {
+        const key = player.name.toLocaleLowerCase();
+        if (playerNames.has(key)) {
+            showError(submitError, `Enter ${player.name} only once. For simultaneous seats, use Role@Good+Role@Evil.`);
+            return;
+        }
+        playerNames.add(key);
     }
 
     // Assign teams based on evil selection
@@ -571,6 +597,18 @@ async function submitGameForm() {
         }
     }
 
+    // Preserve fields that the text editor does not represent when a player's
+    // visible entry and team were left unchanged.
+    const currentLines = linesByPlayerName(team1Text, team2Text);
+    const editedPlayers = [...team1Players, ...team2Players].map(player => {
+        const previous = originalEditGame?.players?.find(old => old.name === player.name);
+        if (previous && previous.team === player.team &&
+            originalEditLines?.get(player.name) === currentLines.get(player.name)) {
+            return previous;
+        }
+        return player;
+    });
+
     // Determine winning team
     const winnerNum = parseInt(winner.value);
     const winningTeam = winnerNum === 1 ? team1Team : team2Team;
@@ -584,7 +622,7 @@ async function submitGameForm() {
 
     // Build game data
     const gameData = {
-        players: [...team1Players, ...team2Players],
+        players: editedPlayers,
         winning_team: winningTeam,
         game_mode: scriptSelect.value,
         story_teller: storyteller,
@@ -863,12 +901,14 @@ async function loadGameForEdit(gameId) {
         // Set edit mode
         editMode = true;
         currentEditGameId = gameId;
+        originalEditGame = game;
 
         // Close search modal and open game entry modal
         closeSearchModal();
 
         // Populate the form
         populateFormWithGame(game);
+        originalEditLines = linesByPlayerName(team1Input.value, team2Input.value);
 
         // Update form title
         formTitle.innerHTML = `Edit Game #${gameId} <span class="edit-mode-badge">EDITING</span>`;
@@ -969,6 +1009,8 @@ function formatPlayersForTextarea(players) {
 function resetToAddMode() {
     editMode = false;
     currentEditGameId = null;
+    originalEditGame = null;
+    originalEditLines = null;
     formTitle.textContent = 'Add New Game';
     formSubtitle.textContent = 'Enter game details below';
     formStep.classList.remove('edit-mode');

@@ -48,14 +48,20 @@ export async function fetchGames() {
     }
 
     await initSupabase();
-    const { data, error } = await supabase
-        .from('games')
-        .select('*')
-        .order('game_id', { ascending: true });
-
-    if (error) {
-        console.error('Error fetching games:', error);
-        throw error;
+    const data = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+        const { data: page, error } = await supabase
+            .from('games')
+            .select('*')
+            .order('game_id', { ascending: true })
+            .range(offset, offset + pageSize - 1);
+        if (error) {
+            console.error('Error fetching games:', error);
+            throw error;
+        }
+        data.push(...page);
+        if (page.length < pageSize) break;
     }
 
     return data.map(game => ({
@@ -107,11 +113,13 @@ export async function submitGame(gameData, code) {
     await initSupabase();
 
     // Get the next game_id
-    const { data: maxGame } = await supabase
+    const { data: maxGame, error: maxGameError } = await supabase
         .from('games')
         .select('game_id')
         .order('game_id', { ascending: false })
         .limit(1);
+
+    if (maxGameError) throw maxGameError;
 
     const nextId = (maxGame && maxGame.length > 0) ? maxGame[0].game_id + 1 : 1;
 
@@ -418,3 +426,4 @@ export async function deleteScript(scriptName, code) {
         throw error;
     }
 }
+
