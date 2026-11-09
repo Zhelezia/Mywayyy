@@ -416,6 +416,48 @@ function parseTeamInput(text) {
         const roleStr = parts[1] || '';
         const teamHint = parts[2] || null;
 
+        // A @team suffix records simultaneous role seats for one player,
+        // such as Courtier@Good+Goblin@Evil.
+        if (roleStr.includes('@')) {
+            const roleAssignments = roleStr.split('+').map(item => {
+                const separator = item.lastIndexOf('@');
+                if (separator < 1) return null;
+                const team = capitalize(item.slice(separator + 1));
+                if (team !== 'Good' && team !== 'Evil') return null;
+                return { role: standardizeRole(item.slice(0, separator)), team };
+            }).filter(Boolean);
+            if (roleAssignments.length) {
+                const teams = new Set(roleAssignments.map(item => item.team));
+                players.push({
+                    name,
+                    role: roleAssignments[0].role,
+                    roles: [roleAssignments[0].role],
+                    roles_in_play: roleAssignments.map(item => item.role),
+                    role_assignments: roleAssignments,
+                    team: teams.size > 1 ? 'Both' : roleAssignments[0].team,
+                    initial_team: teams.size > 1 ? 'Both' : roleAssignments[0].team
+                });
+                continue;
+            }
+        }
+
+        // An & separates simultaneous in-play roles; + remains a role history.
+        if (roleStr.includes('&')) {
+            const rolesInPlay = roleStr.split('&').map(standardizeRole).filter(Boolean);
+            if (rolesInPlay.length) {
+                players.push({
+                    name,
+                    role: rolesInPlay[0],
+                    roles: [rolesInPlay[0]],
+                    roles_in_play: rolesInPlay,
+                    initial_team: teamHint && teamHint.includes('->')
+                        ? capitalize(teamHint.split('->')[0])
+                        : (teamHint ? capitalize(teamHint) : null)
+                });
+                continue;
+            }
+        }
+
         // Process roles (split on +)
         const rawRoles = roleStr ? roleStr.split('+') : [''];
         const roles = rawRoles.map(r => standardizeRole(r));
@@ -517,12 +559,16 @@ async function submitGameForm() {
 
     // Assign team and initial_team to players
     for (const p of team1Players) {
-        p.team = team1Team;
-        if (!p.initial_team) p.initial_team = team1Team;
+        if (!p.role_assignments) {
+            p.team = team1Team;
+            if (!p.initial_team) p.initial_team = team1Team;
+        }
     }
     for (const p of team2Players) {
-        p.team = team2Team;
-        if (!p.initial_team) p.initial_team = team2Team;
+        if (!p.role_assignments) {
+            p.team = team2Team;
+            if (!p.initial_team) p.initial_team = team2Team;
+        }
     }
 
     // Determine winning team
@@ -849,13 +895,15 @@ async function loadGameForEdit(gameId) {
  * Populate the form with existing game data
  */
 function populateFormWithGame(game) {
-    // Separate players by team
+    // Put a mixed-alignment player in one input only; the @team notation
+    // carries each simultaneous seat's alignment.
+    const bothPlayers = game.players.filter(p => p.team === 'Both');
     const evilPlayers = game.players.filter(p => p.team === 'Evil');
     const goodPlayers = game.players.filter(p => p.team === 'Good');
 
     // Determine which team is team 1 (Evil team)
     const team1IsEvil = true; // We'll put Evil in Team 1
-    const team1Players = evilPlayers;
+    const team1Players = [...evilPlayers, ...bothPlayers];
     const team2Players = goodPlayers;
 
     // Format players for textarea
@@ -896,15 +944,18 @@ function formatPlayersForTextarea(players) {
     return players.map(p => {
         let line = p.name;
 
-        // Add roles
-        if (p.roles && p.roles.length > 0) {
+        if (p.role_assignments && p.role_assignments.length) {
+            line += ' ' + p.role_assignments.map(item => item.role + '@' + item.team).join('+');
+        } else if (p.roles_in_play && p.roles_in_play.length > 1) {
+            line += ' ' + p.roles_in_play.join('&');
+        } else if (p.roles && p.roles.length > 0) {
             line += ' ' + p.roles.join('+');
         } else if (p.role) {
             line += ' ' + p.role;
         }
 
         // Add team hint if initial team differs from final team
-        if (p.initial_team && p.initial_team !== p.team) {
+        if (p.team !== 'Both' && p.initial_team && p.initial_team !== p.team) {
             line += ' ' + p.initial_team + '->' + p.team;
         }
 
@@ -1120,3 +1171,4 @@ async function confirmDeleteScript(scriptName) {
         alert(error.message || 'Failed to delete script.');
     }
 }
+

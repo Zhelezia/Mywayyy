@@ -9,7 +9,12 @@ function storytellerNames(value) {
 
 function rolesForPlayer(player) {
     const history = Array.isArray(player.roles) ? player.roles : [];
-    return new Set([...history, player.role].filter(role => typeof role === 'string' && role.trim()));
+    const inPlay = Array.isArray(player.roles_in_play) ? player.roles_in_play : [];
+    const assigned = Array.isArray(player.role_assignments)
+        ? player.role_assignments.map(assignment => assignment.role)
+        : [];
+    return new Set([...history, ...inPlay, ...assigned, player.role]
+        .filter(role => typeof role === 'string' && role.trim()));
 }
 
 function roleKey(role) {
@@ -95,3 +100,4 @@ function matchesSelection(selection, gameValues, normalize = value => value) {
         ? selection.include.every(value => available.has(normalize(value)))
         : selection.include.some(value => available.has(normalize(value)));
 }
+

@@ -35,6 +35,9 @@ const CHARACTER_ROLE_TYPES = {
     "vortox": "Demons",
     "yaggababble": "Demons",
     "zombuul": "Demons",
+    "draconis": "Demons",
+    "seclorum": "Demons",
+    "yaga": "Demons",
     // Minions
     "assassin": "Minions",
     "baron": "Minions",
@@ -63,6 +66,9 @@ const CHARACTER_ROLE_TYPES = {
     "wizard": "Minions",
     "wraith": "Minions",
     "xaan": "Minions",
+    "agitprop": "Minions",
+    "chairman": "Minions",
+    "templar": "Minions",
     // Outsiders
     "barber": "Outsiders",
     "butler": "Outsiders",
@@ -87,6 +93,7 @@ const CHARACTER_ROLE_TYPES = {
     "sweetheart": "Outsiders",
     "tinker": "Outsiders",
     "zealot": "Outsiders",
+    "libertine": "Outsiders",
     // Townsfolk
     "acrobat": "Townsfolk",
     "alchemist": "Townsfolk",
@@ -114,6 +121,18 @@ const CHARACTER_ROLE_TYPES = {
     "fool": "Townsfolk",
     "fortune_teller": "Townsfolk",
     "gambler": "Townsfolk",
+    "blacklister": "Townsfolk",
+    "black_ops": "Townsfolk",
+    "double_agent": "Townsfolk",
+    "diplomat": "Townsfolk",
+    "eavesdropper": "Townsfolk",
+    "internal_wiretap": "Townsfolk",
+    "jurist": "Townsfolk",
+    "populist": "Townsfolk",
+    "symbologist": "Townsfolk",
+    "sympathizer": "Townsfolk",
+    "truther": "Townsfolk",
+    "pixie": "Townsfolk",
     "general": "Townsfolk",
     "gossip": "Townsfolk",
     "grandmother": "Townsfolk",
@@ -225,6 +244,25 @@ export function getCharacterRoleType(characterName) {
  */
 function normalizeName(name) {
     return (name || '').trim().toLowerCase();
+}
+
+function alignmentSeats(player) {
+    const explicit = Array.isArray(player.role_assignments) ? player.role_assignments : [];
+    const seats = explicit.filter(item => item && (item.team === 'Good' || item.team === 'Evil'));
+    return seats.length ? seats : (
+        player.team === 'Good' || player.team === 'Evil'
+            ? [{ role: player.role || '', team: player.team }]
+            : []
+    );
+}
+
+function rolesInPlayerRecord(player) {
+    return [...new Set([
+        ...(Array.isArray(player.roles) ? player.roles : []),
+        ...(Array.isArray(player.roles_in_play) ? player.roles_in_play : []),
+        ...(Array.isArray(player.role_assignments) ? player.role_assignments.map(item => item.role) : []),
+        player.role
+    ].filter(role => typeof role === 'string' && role.trim()))];
 }
 
 /**
@@ -406,7 +444,9 @@ export class StorytellerAnalytics {
                 const name = (p.name || '').trim();
                 if (!name) continue;
 
-                const team = p.team;
+                const seats = alignmentSeats(p);
+                const teams = new Set(seats.map(seat => seat.team));
+                const team = teams.size === 1 ? seats[0].team : null;
 
                 if (!this.playerStats[name]) {
                     this.playerStats[name] = {
@@ -424,20 +464,19 @@ export class StorytellerAnalytics {
                 const entry = this.playerStats[name];
                 entry.games++;
 
-                if (team === winningTeam) {
+                if (team && team === winningTeam) {
                     entry.wins++;
                 }
 
-                // Alignment breakdown
-                if (team === 'Good') {
-                    entry.good_games++;
-                    if (team === winningTeam) {
-                        entry.good_wins++;
-                    }
-                } else if (team === 'Evil') {
-                    entry.evil_games++;
-                    if (team === winningTeam) {
-                        entry.evil_wins++;
+                // Alignment counts follow role seats, while a player remains
+                // one overall game appearance.
+                for (const seat of seats) {
+                    if (seat.team === 'Good') {
+                        entry.good_games++;
+                        if (seat.team === winningTeam) entry.good_wins++;
+                    } else if (seat.team === 'Evil') {
+                        entry.evil_games++;
+                        if (seat.team === winningTeam) entry.evil_wins++;
                     }
                 }
 
@@ -453,23 +492,21 @@ export class StorytellerAnalytics {
                     };
                 }
                 entry.scripts[script].games++;
-                if (team === winningTeam) {
+                if (team && team === winningTeam) {
                     entry.scripts[script].wins++;
                 }
-                if (team === 'Good') {
-                    entry.scripts[script].good_games++;
-                    if (team === winningTeam) {
-                        entry.scripts[script].good_wins++;
-                    }
-                } else if (team === 'Evil') {
-                    entry.scripts[script].evil_games++;
-                    if (team === winningTeam) {
-                        entry.scripts[script].evil_wins++;
+                for (const seat of seats) {
+                    if (seat.team === 'Good') {
+                        entry.scripts[script].good_games++;
+                        if (seat.team === winningTeam) entry.scripts[script].good_wins++;
+                    } else if (seat.team === 'Evil') {
+                        entry.scripts[script].evil_games++;
+                        if (seat.team === winningTeam) entry.scripts[script].evil_wins++;
                     }
                 }
 
                 // Role counts
-                const rolesList = p.roles || [p.role];
+                const rolesList = rolesInPlayerRecord(p);
                 for (const role of rolesList) {
                     if (!role) continue;
                     const canonicalRole = canonicalCharacterName(role);
@@ -477,7 +514,9 @@ export class StorytellerAnalytics {
                         entry.roles[canonicalRole] = { games: 0, wins: 0 };
                     }
                     entry.roles[canonicalRole].games++;
-                    if (team === winningTeam) {
+                    const seatTeam = (p.role_assignments || []).find(item =>
+                        characterRoleKey(item.role) === characterRoleKey(role))?.team || team;
+                    if (seatTeam && seatTeam === winningTeam) {
                         entry.roles[canonicalRole].wins++;
                     }
                 }
@@ -691,10 +730,14 @@ export class StorytellerAnalytics {
             // Map each role to teams of players with that role
             const roleTeams = {};
             for (const p of (game.players || [])) {
-                const role = canonicalCharacterName(p.role || '');
-                if (!role) continue;
-                if (!roleTeams[role]) roleTeams[role] = [];
-                roleTeams[role].push(p.team);
+                for (const sourceRole of rolesInPlayerRecord(p)) {
+                    const role = canonicalCharacterName(sourceRole);
+                    if (!role) continue;
+                    if (!roleTeams[role]) roleTeams[role] = [];
+                    const team = (p.role_assignments || []).find(item =>
+                        characterRoleKey(item.role) === characterRoleKey(sourceRole))?.team;
+                    roleTeams[role].push(team || p.team);
+                }
             }
 
             // Count unique roles per game
@@ -891,12 +934,19 @@ export function calculateCharacterElo(games) {
         const players = game.players || [];
         const winningTeam = game.winning_team;
 
-        // Get unique characters by team (handles duplicates like Legion)
+        // Count simultaneous seats under their recorded alignment.
+        const characterSeats = players.flatMap(p => {
+            if (Array.isArray(p.role_assignments) && p.role_assignments.length) {
+                return p.role_assignments.map(item => ({ role: item.role, team: item.team }));
+            }
+            return [...new Set([p.role, ...(Array.isArray(p.roles_in_play) ? p.roles_in_play : [])])]
+                .map(role => ({ role, team: p.team }));
+        });
         const goodChars = [...new Set(
-            players.filter(p => p.team === 'Good').map(p => canonicalCharacterName(p.role)).filter(r => r)
+            characterSeats.filter(seat => seat.team === 'Good').map(seat => canonicalCharacterName(seat.role)).filter(Boolean)
         )];
         const evilChars = [...new Set(
-            players.filter(p => p.team === 'Evil').map(p => canonicalCharacterName(p.role)).filter(r => r)
+            characterSeats.filter(seat => seat.team === 'Evil').map(seat => canonicalCharacterName(seat.role)).filter(Boolean)
         )];
 
         // Skip games with no characters on either team
@@ -1037,3 +1087,4 @@ export function getCharacterScriptBreakdown(games, characterName) {
         players: sortedPlayers
     };
 }
+

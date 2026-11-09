@@ -33,6 +33,7 @@ export class Player {
         this.gameHistory = [];
         this.gamesOverall = 0;
         this.winsOverall = 0;
+        this.gamesOverallDecisive = 0;
         this.gamesGood = 0;
         this.winsGood = 0;
         this.gamesEvil = 0;
@@ -42,13 +43,17 @@ export class Player {
     /**
      * Record a single game for this player.
      */
-    recordGame(gameNumber, date, team, role, win, ratingBefore, ratingAfter, initialTeam = null, roles = null) {
+    recordGame(gameNumber, date, team, role, win, ratingBefore, ratingAfter, initialTeam = null, roles = null, roleAssignments = null, winningTeam = null) {
         if (roles === null) {
             roles = [role];
         }
         if (initialTeam === null) {
             initialTeam = team;
         }
+        const assignments = Array.isArray(roleAssignments) && roleAssignments.length
+            ? roleAssignments
+            : [{ role, team, initial_team: initialTeam }];
+        const assignmentTeams = new Set(assignments.map(item => item.team).filter(value => value === "Good" || value === "Evil"));
 
         const record = {
             gameNumber,
@@ -60,6 +65,7 @@ export class Player {
             ratingAfter,
             initialTeam,
             roles,
+            roleAssignments: assignments,
         };
         this.gameHistory.push(record);
 
@@ -68,20 +74,21 @@ export class Player {
         if (win) {
             this.winsOverall += 1;
         }
-        if (team === "Good") {
-            this.gamesGood += 1;
-            if (win) {
-                this.winsGood += 1;
-            }
-        } else if (team === "Evil") {
-            this.gamesEvil += 1;
-            if (win) {
-                this.winsEvil += 1;
+        if (assignmentTeams.size === 1) {
+            this.gamesOverallDecisive += 1;
+        }
+        for (const assignment of assignments) {
+            if (assignment.team === "Good") {
+                this.gamesGood += 1;
+                if (assignment.team === winningTeam) this.winsGood += 1;
+            } else if (assignment.team === "Evil") {
+                this.gamesEvil += 1;
+                if (assignment.team === winningTeam) this.winsEvil += 1;
             }
         }
 
         // Calculate percentages for history snapshot
-        const overallPct = this.gamesOverall > 0 ? (this.winsOverall / this.gamesOverall) * 100 : null;
+        const overallPct = this.gamesOverallDecisive > 0 ? (this.winsOverall / this.gamesOverallDecisive) * 100 : null;
         const goodPct = this.gamesGood > 0 ? (this.winsGood / this.gamesGood) * 100 : null;
         const evilPct = this.gamesEvil > 0 ? (this.winsEvil / this.gamesEvil) * 100 : null;
 
@@ -100,7 +107,7 @@ export class Player {
      */
     getWinPercentages() {
         return {
-            overall: this.gamesOverall > 0 ? (this.winsOverall / this.gamesOverall) * 100 : null,
+            overall: this.gamesOverallDecisive > 0 ? (this.winsOverall / this.gamesOverallDecisive) * 100 : null,
             good: this.gamesGood > 0 ? (this.winsGood / this.gamesGood) * 100 : null,
             evil: this.gamesEvil > 0 ? (this.winsEvil / this.gamesEvil) * 100 : null,
         };
@@ -126,6 +133,17 @@ function teamAverage(teamList, players, trackedGamesBeforeThisGame) {
         return acc + expectedRating;
     }, 0);
     return sum / teamList.length;
+}
+
+function ratingSeatsForPlayer(player) {
+    const assignments = Array.isArray(player.role_assignments) ? player.role_assignments : [];
+    const seats = assignments
+        .filter(assignment => assignment && (assignment.team === "Good" || assignment.team === "Evil"))
+        .map(assignment => ({ name: player.name, role: assignment.role || "", team: assignment.team }));
+    if (seats.length) return seats;
+    return player.team === "Good" || player.team === "Evil"
+        ? [{ name: player.name, role: player.role || "", team: player.team }]
+        : [];
 }
 
 /**
@@ -169,8 +187,9 @@ export function recalcAll(gameLog, trackingHistory = gameLog) {
         }
 
         // Partition players by final team
-        const teamGood = game.players.filter(p => p.team === "Good");
-        const teamEvil = game.players.filter(p => p.team === "Evil");
+        const ratingSeats = game.players.flatMap(ratingSeatsForPlayer);
+        const teamGood = ratingSeats.filter(seat => seat.team === "Good");
+        const teamEvil = ratingSeats.filter(seat => seat.team === "Evil");
 
         // Calculate team averages
         const trackedGamesBeforeThisGame = trackedGamesBeforeEachGame.get(game.game_id);
@@ -190,17 +209,21 @@ export function recalcAll(gameLog, trackingHistory = gameLog) {
             const player = players[p.name];
             const ratingBefore = player.currentRating;
 
-            let delta;
-            if (p.team === "Good") {
-                delta = ELO_K_FACTOR * (resultGood - expGood);
-            } else {
-                delta = ELO_K_FACTOR * (resultEvil - expEvil);
-            }
+            const seats = ratingSeatsForPlayer(p);
+            const delta = seats.reduce((sum, seat) => {
+                const expectation = seat.team === "Good" ? expGood : expEvil;
+                const result = seat.team === "Good" ? resultGood : resultEvil;
+                return sum + ELO_K_FACTOR * (result - expectation);
+            }, 0);
 
             const newRating = ratingBefore + delta;
             player.currentRating = newRating;
 
-            const win = p.team === game.winning_team;
+            const teams = new Set(seats.map(seat => seat.team));
+            const recordTeam = teams.size > 1 ? "Both" : (teams.values().next().value || p.team);
+            const win = recordTeam === "Good" || recordTeam === "Evil"
+                ? recordTeam === game.winning_team
+                : null;
             player.recordGame(
                 game.game_id,
                 game.date,
@@ -210,7 +233,13 @@ export function recalcAll(gameLog, trackingHistory = gameLog) {
                 ratingBefore,
                 newRating,
                 p.initial_team,
-                p.roles
+                p.roles,
+                seats.map(seat => ({
+                    role: seat.role,
+                    team: seat.team,
+                    initial_team: p.initial_team || seat.team
+                })),
+                game.winning_team
             );
         }
     }
@@ -323,3 +352,4 @@ export function getRatingDelta(player, startGame, endGame) {
 
     return ratingAfter - ratingBefore;
 }
+

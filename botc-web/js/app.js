@@ -2,11 +2,11 @@
  * Blood on the Clocktower Stats - Main Application
  */
 
-import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=provisional-rating-1300-2026-11-04';
+import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=simultaneous-role-elo-2026-11-09';
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js';
-import { initGameEntry, updatePlayerNames } from './gameEntry.js';
+import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=simultaneous-role-elo-2026-11-09';
 import { categorizeScript, setScriptCategories } from './config.js';
-import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=tri-state-2026-11-04';
+import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=simultaneous-role-elo-2026-11-09';
 import SITE_CONFIG from './site-config.js';
 
 // Global state
@@ -829,3 +829,4 @@ function renderRatingChart(player, container) {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
+

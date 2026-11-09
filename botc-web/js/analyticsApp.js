@@ -14,7 +14,20 @@ import {
     analyzeHeadToHead,
     calculateCharacterElo,
     getCharacterScriptBreakdown
-} from './analytics.js?v=role-canonical-2026-11-03';
+} from './analytics.js?v=simultaneous-role-elo-2026-11-09';
+
+function recordedRoles(player) {
+    return new Set([
+        ...(Array.isArray(player.roles) ? player.roles : []),
+        ...(Array.isArray(player.roles_in_play) ? player.roles_in_play : []),
+        ...(Array.isArray(player.role_assignments) ? player.role_assignments.map(item => item.role) : []),
+        player.role
+    ].filter(role => typeof role === 'string' && role.trim()));
+}
+
+function playerHasRole(player, targetRole) {
+    return [...recordedRoles(player)].some(role => characterRoleKey(role) === targetRole);
+}
 
 // ==========================================
 // STATE
@@ -624,9 +637,7 @@ function updatePlayerRolesTable(stats) {
         row.addEventListener('click', () => {
             const targetRole = characterRoleKey(role);
             const games = currentAnalytics.games.filter(g =>
-                g.players.some(p => p.name === playerName &&
-                    (characterRoleKey(p.role) === targetRole ||
-                        (p.roles && p.roles.some(recordedRole => characterRoleKey(recordedRole) === targetRole)))));
+                g.players.some(p => p.name === playerName && playerHasRole(p, targetRole)));
             showGameHistory(`${playerName.replace(/_/g, ' ')} as ${role.replace(/_/g, ' ')}`, roleType, games);
         });
         tbody.appendChild(row);
@@ -888,11 +899,18 @@ function showGameDetail(game) {
     }
 
     // Render players into a tbody
-    function renderPlayers(tbody, players) {
+    function renderPlayers(tbody, players, alignment) {
         tbody.innerHTML = '';
         for (const p of players) {
             const row = document.createElement('tr');
-            const roles = (p.roles && p.roles.length > 0) ? p.roles.join(' → ') : (p.role || '-');
+            const teamAssignments = Array.isArray(p.role_assignments)
+                ? p.role_assignments.filter(item => item.team === alignment)
+                : [];
+            const roles = teamAssignments.length
+                ? teamAssignments.map(item => item.role).join(' + ')
+                : (p.roles_in_play && p.roles_in_play.length > 1
+                    ? p.roles_in_play.join(' + ')
+                    : ((p.roles && p.roles.length > 0) ? p.roles.join(' → ') : (p.role || '-')));
             let nameHtml = (p.name || '-').replace(/_/g, ' ');
 
             // Flag team change
@@ -902,7 +920,7 @@ function showGameDetail(game) {
 
             // Show role progression if multiple roles
             let rolesHtml = roles.replace(/_/g, ' ');
-            if (p.roles && p.roles.length > 1) {
+            if (!teamAssignments.length && p.roles && p.roles.length > 1) {
                 rolesHtml = p.roles.map(r => r.replace(/_/g, ' ')).join(' <span class="role-arrow">→</span> ');
             }
 
@@ -911,8 +929,10 @@ function showGameDetail(game) {
         }
     }
 
-    renderPlayers(document.getElementById('game-detail-good-body'), (game.players || []).filter(p => p.team === 'Good'));
-    renderPlayers(document.getElementById('game-detail-evil-body'), (game.players || []).filter(p => p.team === 'Evil'));
+    renderPlayers(document.getElementById('game-detail-good-body'), (game.players || []).filter(p =>
+        p.team === 'Good' || (p.role_assignments || []).some(item => item.team === 'Good')), 'Good');
+    renderPlayers(document.getElementById('game-detail-evil-body'), (game.players || []).filter(p =>
+        p.team === 'Evil' || (p.role_assignments || []).some(item => item.team === 'Evil')), 'Evil');
 
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -1511,9 +1531,7 @@ function showCharacterDetail(characterName, roleType, elo) {
             closeCharacterDetail();
             const targetRole = characterRoleKey(characterName);
             const games = currentAnalytics.games.filter(g =>
-                g.players && g.players.some(p =>
-                    characterRoleKey(p.role) === targetRole ||
-                        (p.roles && p.roles.some(role => characterRoleKey(role) === targetRole))));
+                g.players && g.players.some(p => playerHasRole(p, targetRole)));
             showGameHistory(characterName.replace(/_/g, ' '), roleType, games);
         };
     }
@@ -1540,3 +1558,4 @@ function closeCharacterDetail() {
         document.body.style.overflow = '';
     }
 }
+
