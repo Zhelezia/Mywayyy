@@ -18,7 +18,7 @@ import {
     fetchScripts,
     addScript,
     deleteScript
-} from './supabase.js?v=audit-2026-11-09';
+} from './supabase.js?v=audit-v2-2026-11-09';
 
 import { initAutocomplete } from './autocomplete.js';
 import { FABLED, LORICS } from './config.js';

@@ -3,8 +3,8 @@
  */
 
 import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=audit-2026-11-09';
-import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-2026-11-09';
-import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=audit-2026-11-09';
+import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-v2-2026-11-09';
+import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=audit-v2-2026-11-09';
 import { categorizeScript, setScriptCategories } from './config.js';
 import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=simultaneous-role-elo-2026-11-09';
 import SITE_CONFIG from './site-config.js';

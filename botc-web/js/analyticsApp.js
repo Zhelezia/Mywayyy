@@ -2,7 +2,7 @@
  * Analytics Application - Main entry point for the analytics dashboard.
  */
 
-import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-2026-11-09';
+import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-v2-2026-11-09';
 import { setScriptCategories } from './config.js';
 import SITE_CONFIG from './site-config.js';
 import { characterRoleKey } from './roleNames.mjs';

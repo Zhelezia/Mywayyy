@@ -112,38 +112,36 @@ export async function submitGame(gameData, code) {
 
     await initSupabase();
 
-    // Get the next game_id
-    const { data: maxGame, error: maxGameError } = await supabase
-        .from('games')
-        .select('game_id')
-        .order('game_id', { ascending: false })
-        .limit(1);
+    // Another user can submit between reading the last ID and inserting.
+    // Retry a game_id conflict with a fresh ID; other errors are surfaced.
+    for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: maxGame, error: maxGameError } = await supabase
+            .from('games')
+            .select('game_id')
+            .order('game_id', { ascending: false })
+            .limit(1);
+        if (maxGameError) throw maxGameError;
 
-    if (maxGameError) throw maxGameError;
-
-    const nextId = (maxGame && maxGame.length > 0) ? maxGame[0].game_id + 1 : 1;
-
-    // Insert the new game
-    const { data, error } = await supabase
-        .from('games')
-        .insert({
-            game_id: nextId,
-            date: new Date().toISOString(),
-            players: gameData.players,
-            winning_team: gameData.winning_team,
-            game_mode: gameData.game_mode,
-            story_teller: gameData.story_teller,
-            modifiers: gameData.modifiers
-        })
-        .select()
-        .single();
-
-    if (error) {
-        console.error('Error submitting game:', error);
-        throw error;
+        const nextId = (maxGame && maxGame.length > 0) ? maxGame[0].game_id + 1 : 1;
+        const { data, error } = await supabase
+            .from('games')
+            .insert({
+                game_id: nextId,
+                date: new Date().toISOString(),
+                players: gameData.players,
+                winning_team: gameData.winning_team,
+                game_mode: gameData.game_mode,
+                story_teller: gameData.story_teller,
+                modifiers: gameData.modifiers
+            })
+            .select()
+            .single();
+        if (!error) return data;
+        if (error.code !== '23505' || !/game_id/i.test(`${error.message || ''} ${error.details || ''}`) || attempt === 2) {
+            console.error('Error submitting game:', error);
+            throw error;
+        }
     }
-
-    return data;
 }
 
 /**
