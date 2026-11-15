@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOTC Games</title>
+    <link rel="stylesheet" href="css/styles.css?v=ru-games-2026-11-15">
+    <link rel="stylesheet" href="css/i18n.css?v=ru-games-2026-11-15">
+    <link rel="stylesheet" href="css/games.css?v=ru-games-2026-11-15">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>BOTC Games</h1>
+            <p>Browse the game history</p>
+            <nav class="header-nav">
+                <a href="index.html">Leaderboard</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="games.html" class="active">Games</a>
+            </nav>
+        </header>
+        <main id="games-page" data-i18n-skip>
+            <div class="games-filter-panel">
+                <label><span id="games-search-label"></span><input id="games-search" type="search" autocomplete="off"></label>
+                <label><span id="games-script-label"></span><select id="games-script"></select></label>
+                <label><span id="games-storyteller-label"></span><select id="games-storyteller"></select></label>
+                <label><span id="games-winner-label"></span><select id="games-winner"></select></label>
+            </div>
+            <div class="games-list-heading"><h2 id="games-heading"></h2><span id="games-count" aria-live="polite"></span></div>
+            <div id="games-error" role="alert" hidden></div>
+            <div id="games-list" class="games-list" aria-live="polite"></div>
+        </main>
+        <footer><p>Data tracked with love for the Town.<br><a href="https://github.com/RossFW/botc-stats" target="_blank" rel="noopener">View on GitHub</a></p></footer>
+    </div>
+    <script type="module" src="js/gamesApp.js?v=ru-games-2026-11-15"></script>
+    <script src="js/settings.js?v=ru-games-2026-11-15"></script>
+</body>
+</html>

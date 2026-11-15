@@ -20,8 +20,10 @@ import {
     deleteScript
 } from './supabase.js?v=audit-v2-2026-11-09';
 
-import { initAutocomplete } from './autocomplete.js';
+import { initAutocomplete } from './autocomplete.js?v=ru-games-2026-11-15';
 import { FABLED, LORICS } from './config.js';
+import { canonicalRoleInput } from './roleTranslations.mjs';
+import { tr } from './i18n.mjs?v=ru-games-2026-11-15';
 
 // Cache for scripts
 let scriptsCache = null;
@@ -416,12 +418,12 @@ function parseTeamInput(text) {
         const trimmed = line.trim();
         if (!trimmed) continue;
 
-        const parts = trimmed.split(/\s+/);
-        if (parts.length < 1) continue;
-
-        const name = parts[0];
-        const roleStr = parts[1] || '';
-        const teamHint = parts[2] || null;
+        const name = trimmed.split(/\s+/, 1)[0];
+        let roleText = trimmed.slice(name.length).trim();
+        const hint = roleText.match(/\s+((?:good|evil|добро|зло)(?:\s*->\s*(?:good|evil|добро|зло))?)$/i);
+        const teamHint = hint ? hint[1].replace(/\s/g, '') : null;
+        if (hint) roleText = roleText.slice(0, hint.index).trim();
+        const roleStr = roleText.replace(/\s*([+&@])\s*/g, '$1').replace(/\s+/g, '_');
 
         // A @team suffix records simultaneous role seats for one player,
         // such as Courtier@Good+Goblin@Evil.
@@ -429,7 +431,7 @@ function parseTeamInput(text) {
             const roleAssignments = roleStr.split('+').map(item => {
                 const separator = item.lastIndexOf('@');
                 if (separator < 1) return null;
-                const team = capitalize(item.slice(separator + 1));
+                const team = normalizeTeam(item.slice(separator + 1));
                 if (team !== 'Good' && team !== 'Evil') return null;
                 return { role: standardizeRole(item.slice(0, separator)), team };
             });
@@ -461,8 +463,8 @@ function parseTeamInput(text) {
                     roles: [rolesInPlay[0]],
                     roles_in_play: rolesInPlay,
                     initial_team: teamHint && teamHint.includes('->')
-                        ? capitalize(teamHint.split('->')[0])
-                        : (teamHint ? capitalize(teamHint) : null)
+                        ? normalizeTeam(teamHint.split('->')[0])
+                        : (teamHint ? normalizeTeam(teamHint) : null)
                 });
                 continue;
             }
@@ -477,9 +479,9 @@ function parseTeamInput(text) {
         let initialTeam = null;
         if (teamHint) {
             if (teamHint.includes('->')) {
-                initialTeam = capitalize(teamHint.split('->')[0]);
+                initialTeam = normalizeTeam(teamHint.split('->')[0]);
             } else {
-                initialTeam = capitalize(teamHint);
+                initialTeam = normalizeTeam(teamHint);
             }
         }
 
@@ -499,7 +501,7 @@ function parseTeamInput(text) {
  */
 function standardizeRole(role) {
     if (!role) return '';
-    const segments = role.split('_');
+    const segments = canonicalRoleInput(role).replace(/\s+/g, '_').split('_');
     return segments.map(seg => {
         if (!seg) return seg;
         return seg[0].toUpperCase() + seg.slice(1).toLowerCase();
@@ -512,6 +514,13 @@ function standardizeRole(role) {
 function capitalize(str) {
     if (!str) return str;
     return str[0].toUpperCase() + str.slice(1).toLowerCase();
+}
+
+function normalizeTeam(value) {
+    const normalized = String(value || '').toLocaleLowerCase('ru');
+    if (normalized === 'добро') return 'Good';
+    if (normalized === 'зло') return 'Evil';
+    return capitalize(value);
 }
 
 /**
@@ -927,7 +936,7 @@ async function loadGameForEdit(gameId) {
 
     } catch (error) {
         console.error('Error loading game:', error);
-        alert('Failed to load game for editing. Please try again.');
+        alert(tr('Failed to load game for editing. Please try again.'));
     }
 }
 
@@ -1125,7 +1134,7 @@ async function saveNewScript() {
 async function confirmDeleteGame() {
     if (!editMode || !currentEditGameId) return;
 
-    const confirmed = window.confirm(`Are you sure you want to delete Game #${currentEditGameId}? This cannot be undone.`);
+    const confirmed = window.confirm(tr(`Are you sure you want to delete Game #${currentEditGameId}? This cannot be undone.`));
     if (!confirmed) return;
 
     hideError(submitError);
@@ -1197,7 +1206,7 @@ function renderScriptManageList() {
  * Confirm and delete a script.
  */
 async function confirmDeleteScript(scriptName) {
-    const confirmed = window.confirm(`Delete script "${scriptName}"? This cannot be undone.`);
+    const confirmed = window.confirm(tr(`Delete script "${scriptName}"? This cannot be undone.`));
     if (!confirmed) return;
 
     try {
@@ -1210,7 +1219,6 @@ async function confirmDeleteScript(scriptName) {
 
     } catch (error) {
         console.error('Error deleting script:', error);
-        alert(error.message || 'Failed to delete script.');
+        alert(tr(error.message || 'Failed to delete script.'));
     }
 }
-

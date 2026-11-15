@@ -44,16 +44,16 @@
             Chart.helpers.each(Chart.instances, (chart) => {
                 chart.data.datasets.forEach(ds => {
                     // Rating line: blue (#60a5fa) in normal → white in colorblind (since Good becomes blue)
-                    if (ds.label === 'Rating') {
+                    if ((ds.botcOriginalLabel || ds.label) === 'Rating') {
                         ds.borderColor = enabled ? '#ffffff' : '#60a5fa';
                         ds.backgroundColor = enabled ? 'rgba(255,255,255,0.1)' : 'rgba(96,165,250,0.1)';
                     }
                     // Good Win % line
-                    if (ds.label === 'Good Win %') {
+                    if ((ds.botcOriginalLabel || ds.label) === 'Good Win %') {
                         ds.borderColor = enabled ? '#60a5fa' : '#4ade80';
                     }
                     // Evil Win % line
-                    if (ds.label === 'Evil Win %') {
+                    if ((ds.botcOriginalLabel || ds.label) === 'Evil Win %') {
                         ds.borderColor = enabled ? '#f97316' : '#f87171';
                     }
                     // Overall Win % line: keep purple in both modes (already #a78bfa)

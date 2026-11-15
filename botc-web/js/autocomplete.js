@@ -6,6 +6,8 @@
  */
 
 import { CHARACTER_ROLE_TYPES } from './config.js';
+import { translateRole } from './roleTranslations.mjs';
+import { getLanguage } from './i18n.mjs?v=ru-games-2026-11-15';
 
 // Shared player names list (updated when games are refreshed)
 let playerNames = [];
@@ -157,7 +159,7 @@ class AutocompleteInstance {
         const roleText = text.substring(roleStart, cursor);
 
         // Handle compound roles with +
-        const lastPlus = roleText.lastIndexOf('+');
+        const lastPlus = Math.max(roleText.lastIndexOf('+'), roleText.lastIndexOf('&'));
         if (lastPlus !== -1) {
             return {
                 type: 'role',
@@ -188,12 +190,12 @@ class AutocompleteInstance {
     filterCandidates(query, candidates, maxResults = 8) {
         if (!query || query.length === 0) return [];
 
-        const lower = query.toLowerCase();
+        const lower = query.toLowerCase().replace(/_/g, ' ').replace(/ё/g, 'е');
 
         const scored = [];
         for (const candidate of candidates) {
-            const searchStr = typeof candidate === 'string' ? candidate : candidate.display;
-            const searchLower = searchStr.toLowerCase();
+            const searchStr = typeof candidate === 'string' ? candidate : `${candidate.display} ${translateRole(candidate.display, 'ru')}`;
+            const searchLower = searchStr.toLowerCase().replace(/_/g, ' ').replace(/ё/g, 'е');
 
             // Exact prefix match - highest priority
             if (searchLower.startsWith(lower)) {
@@ -316,7 +318,8 @@ class AutocompleteInstance {
 
         const ctx = this.currentContext;
         const text = this.element.value;
-        const displayText = typeof suggestion === 'string' ? suggestion : suggestion.display;
+        const displayText = typeof suggestion === 'string' ? suggestion :
+            (getLanguage() === 'ru' ? translateRole(suggestion.display, 'ru').replace(/\s+/g, '_') : suggestion.display);
 
         // Replace the current partial word with the suggestion
         const before = text.substring(0, ctx.replaceStart);
@@ -356,7 +359,7 @@ class AutocompleteInstance {
                 item.appendChild(nameSpan);
             } else {
                 const nameSpan = document.createElement('span');
-                nameSpan.className = 'ac-name';
+                nameSpan.className = 'ac-name ac-role-name';
                 nameSpan.textContent = suggestion.display;
                 item.appendChild(nameSpan);
 

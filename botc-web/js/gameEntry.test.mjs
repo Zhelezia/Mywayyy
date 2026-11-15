@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { canonicalRoleInput } from './roleTranslations.mjs';
 
 const source = readFileSync(new URL('./gameEntry.js', import.meta.url), 'utf8');
 const slice = (start, end) => source.slice(source.indexOf(start), source.indexOf(end));
@@ -23,7 +24,7 @@ function harness(team1, team2, originalPlayers = []) {
         hideError() {}, hideSuccess() {}, showError(_element, message) { errors.push(message); },
         showSuccess() {}, getStoredCode() { return 'code'; },
         async updateGame(id, data) { submitted.push({ id, data }); },
-        clearForm() {}, resetToAddMode() {}, setTimeout() {}, window: {}, console,
+        clearForm() {}, resetToAddMode() {}, setTimeout() {}, window: {}, console, canonicalRoleInput,
     };
     vm.runInNewContext(code, context);
     context.originalEditLines = context.linesByPlayerName(team1, team2);
@@ -54,3 +55,21 @@ test('duplicate player entries are rejected before they affect ratings', async (
     assert.match(h.errors[0], /only once/);
 });
 
+test('Russian role names and team labels preserve canonical recorded roles', async () => {
+    const h = harness('Лиза Блудница', 'Костя Азартный игрок Добро->Зло');
+    await h.context.submitGameForm();
+    assert.equal(h.errors.length, 0);
+    assert.equal(h.submitted[0].data.players[0].role, 'Scarlet_Woman');
+    assert.equal(h.submitted[0].data.players[1].role, 'Gambler');
+    assert.equal(h.submitted[0].data.players[1].initial_team, 'Good');
+});
+
+test('Russian simultaneous seats are parsed with their alignments', async () => {
+    const h = harness('Стул Придворный@Добро+Гоблин@Зло', 'Игрок Пророк');
+    await h.context.submitGameForm();
+    assert.equal(h.errors.length, 0);
+    assert.deepEqual(JSON.parse(JSON.stringify(h.submitted[0].data.players[0].role_assignments)), [
+        { role: 'Courtier', team: 'Good' }, { role: 'Goblin', team: 'Evil' }
+    ]);
+    assert.equal(h.submitted[0].data.players[1].role, 'Oracle');
+});

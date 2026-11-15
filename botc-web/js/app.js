@@ -4,10 +4,11 @@
 
 import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=experienced-2026-11-15';
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-v2-2026-11-09';
-import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=audit-v2-2026-11-09';
+import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=ru-games-2026-11-15';
 import { categorizeScript, setScriptCategories } from './config.js';
 import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=simultaneous-role-elo-2026-11-09';
 import SITE_CONFIG from './site-config.js';
+import { localizeChart } from './i18n.mjs?v=ru-games-2026-11-15';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -225,6 +226,7 @@ function setFilterOptions(filterEl, options) {
         button.type = 'button';
         button.className = 'filter-option';
         button.dataset.filterValue = option.value;
+        button.dataset.filterLabel = option.label;
 
         const mark = document.createElement('span');
         mark.className = 'filter-option-mark';
@@ -250,7 +252,7 @@ function setFilterOptionState(optionEl, state) {
     const current = states[state] || states.neutral;
     optionEl.dataset.filterState = states[state] ? state : 'neutral';
     optionEl.querySelector('.filter-option-mark').textContent = current.mark;
-    const label = optionEl.querySelector('.filter-option-name').textContent;
+    const label = optionEl.dataset.filterLabel || optionEl.querySelector('.filter-option-name').textContent;
     const description = `${label}: ${current.label}. Click to ${current.next}.`;
     optionEl.setAttribute('aria-label', description);
     optionEl.title = description;
@@ -271,7 +273,9 @@ function getFilterSelection(filterEl) {
 function applyFilterSearch(filterEl) {
     const query = filterEl?.querySelector('[data-filter-search]')?.value.trim().toLocaleLowerCase() || '';
     filterEl?.querySelectorAll('.filter-option').forEach(optionEl => {
-        optionEl.hidden = !optionEl.querySelector('.filter-option-name').textContent.toLocaleLowerCase().includes(query);
+        const label = optionEl.querySelector('.filter-option-name').textContent.toLocaleLowerCase();
+        const original = (optionEl.dataset.filterValue || '').replace(/_/g, ' ').toLocaleLowerCase();
+        optionEl.hidden = !label.includes(query) && !original.includes(query);
     });
     const options = [...filterEl.querySelectorAll('.filter-option')];
     const empty = filterEl.querySelector('[data-filter-empty]');
@@ -548,6 +552,7 @@ function updateSortIndicators() {
  * Set up event listeners
  */
 function setupEventListeners() {
+    window.addEventListener('botc:languagechange', () => leaderboardFilterEls.forEach(applyFilterSearch));
     // Game range input
     gameRangeInput.addEventListener('input', () => {
         renderLeaderboard();
@@ -829,8 +834,8 @@ function renderRatingChart(player, container) {
             },
         },
     });
+    localizeChart(container.chart);
 }
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
-

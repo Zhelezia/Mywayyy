@@ -5,6 +5,7 @@
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-v2-2026-11-09';
 import { setScriptCategories } from './config.js';
 import SITE_CONFIG from './site-config.js';
+import { localizeChart, tr } from './i18n.mjs?v=ru-games-2026-11-15';
 import { characterRoleKey } from './roleNames.mjs';
 import {
     StorytellerAnalytics,
@@ -681,12 +682,12 @@ function analyzeH2H() {
     const noResultsDiv = document.getElementById('h2h-no-results');
 
     if (!player1 || !player2) {
-        alert('Please select both players.');
+        alert(tr('Please select both players.'));
         return;
     }
 
     if (player1 === player2) {
-        alert('Please select two different players.');
+        alert(tr('Please select two different players.'));
         return;
     }
 
@@ -1352,6 +1353,7 @@ function renderStorytellerChart(history) {
             }
         }
     });
+    localizeChart(stWinRateChart);
 }
 
 // ==========================================
@@ -1604,4 +1606,3 @@ function closeCharacterDetail() {
         document.body.style.overflow = '';
     }
 }
-

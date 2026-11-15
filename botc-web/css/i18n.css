@@ -1,0 +1,10 @@
+.language-toggle { position: fixed; top: 20px; right: 70px; z-index: 1001; min-height: 40px; padding: 7px 11px; border: 1px solid var(--border-color); border-radius: 20px; background: var(--bg-card); color: var(--text-primary); cursor: pointer; box-shadow: var(--shadow); font: inherit; font-size: .85rem; }
+.language-toggle:hover { background: var(--bg-secondary); }
+.language-choice { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.75); }
+.language-choice-card { width: min(100%, 460px); padding: 28px; border: 1px solid var(--border-color); border-radius: 14px; background: var(--bg-secondary); color: var(--text-primary); box-shadow: 0 18px 60px rgba(0,0,0,.45); text-align: center; }
+.language-choice-card h2 { margin: 0 0 12px; font-size: 1.3rem; }
+.language-choice-card p { color: var(--text-secondary); margin: 0 0 22px; line-height: 1.5; }
+.language-choice-card div { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+.language-choice-card button { min-width: 130px; padding: 11px 18px; border: 1px solid var(--accent-blue); border-radius: 8px; background: var(--bg-card); color: var(--text-primary); cursor: pointer; font: inherit; }
+.language-choice-card button:hover, .language-choice-card button:focus-visible { background: #245385; outline: 2px solid var(--accent-blue); }
+@media (max-width: 480px) { .language-toggle { top: 12px; right: 62px; } }
