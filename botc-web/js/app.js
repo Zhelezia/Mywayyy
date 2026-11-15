@@ -2,7 +2,7 @@
  * Blood on the Clocktower Stats - Main Application
  */
 
-import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=audit-2026-11-09';
+import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=experienced-2026-11-15';
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-v2-2026-11-09';
 import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=audit-v2-2026-11-09';
 import { categorizeScript, setScriptCategories } from './config.js';

@@ -4,6 +4,7 @@
  */
 
 import SITE_CONFIG from './site-config.js';
+import { experiencedPlayers } from './playerStatus.mjs';
 
 // Constants (from site-config.js)
 export const DEFAULT_RATING = SITE_CONFIG.defaultRating || 1500;
@@ -127,7 +128,7 @@ function teamAverage(teamList, players, trackedGamesBeforeThisGame) {
     const sum = teamList.reduce((acc, p) => {
         const player = players[p.name];
         const gamesBeforeThisGame = trackedGamesBeforeThisGame?.get(p.name) ?? player?.gamesOverall ?? 0;
-        const expectedRating = player && gamesBeforeThisGame >= PROVISIONAL_GAMES
+        const expectedRating = player && (experiencedPlayers.has(p.name) || gamesBeforeThisGame >= PROVISIONAL_GAMES)
             ? player.currentRating
             : PROVISIONAL_RATING;
         return acc + expectedRating;
