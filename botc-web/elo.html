@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elo / Эло</title>
+    <link rel="stylesheet" href="css/styles.css?v=monsta-2026-11-16">
+    <link rel="stylesheet" href="css/i18n.css?v=monsta-2026-11-16">
+    <link rel="stylesheet" href="css/elo-info.css?v=1">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Dubki BOTC</h1>
+        <p>ELO Rankings &amp; Game Statistics</p>
+        <nav class="header-nav">
+            <a href="index.html">Leaderboard</a>
+            <a href="analytics.html">Analytics</a>
+            <a href="games.html">Games</a>
+        </nav>
+    </header>
+    <main class="elo-copy" data-i18n-skip>
+        <article lang="en">
+            <h2>How Elo works</h2>
+            <p class="elo-intro">The tracker has separate ratings for players and characters. Both are based on team results, not individual performance.</p>
+
+            <h3>Player ratings</h3>
+            <ol>
+                <li>Everyone starts with a rating of <strong>1500</strong>. Games are replayed in game-number order.</li>
+                <li>Before each game, the tracker averages the ratings of the players on each side. It uses each player’s <strong>final team</strong> if they changed sides.</li>
+                <li>The difference between those averages gives each side an expected score. A win scores 1; a loss scores 0. Everyone on the same side receives the same change for that seat.</li>
+            </ol>
+            <div class="elo-formula">Expected score = 1 / (1 + 10<sup>(opposing average − own average) / 400</sup>)<br>Rating change = 32 × (result − expected score)</div>
+            <p>For example, if the two averages are equal, each side’s expected score is 50%. The winners gain 16 points and the losers lose 16 points. An unexpected win gains more; an expected win gains less.</p>
+            <p>When one person plays multiple separate seats, each seat is included in its team’s average and its changes are added together for that person. The storyteller and an unassigned Lil’ Monsta aren’t player seats.</p>
+
+            <h3>New players</h3>
+            <p>A new player’s displayed rating still starts at 1500 and is updated after each game. For the team-average calculation only, the tracker uses <strong>1300</strong> for their first three recorded games, then uses their actual rating. Players marked as experienced are exempt. The first three games are counted across the full history, even when the leaderboard is filtered.</p>
+
+            <h3>Character ratings</h3>
+            <p>Each character has its own separate Elo, starting at 1500. For each game, the tracker groups the <strong>starting roles by the teams their players finished on</strong>, averages the distinct character ratings on each side, and applies the same expected-score formula with K = 32. Later role changes do not replace the starting role in its statistics; the player's final team determines whether that role wins or loses. Simultaneous starting roles are included.</p>
+            <p>For example, if a Snake Charmer becomes an evil Demon and evil wins, that counts as a Snake Charmer win. If good wins instead, it counts as a Snake Charmer loss.</p>
+            <p>An unassigned Lil’ Monsta counts as an evil character for character Elo and win rate, without being credited to a player. A character win rate counts games, not the number of people who had that role.</p>
+
+            <h3>Filters and limitations</h3>
+            <p>Leaderboard game filters replay the matching games from the starting rating; hiding players with fewer than 10 games only hides their rows. Character Elo is global: character-table filters change the displayed game and win counts, but not the Elo rating.</p>
+            <p>These are descriptive estimates for this group, not precise measures of individual skill or role strength. The formula uses team averages; it doesn’t separately adjust for script balance, team size, character difficulty, or storyteller decisions. A small number of games makes a rating especially uncertain.</p>
+            <p><a href="index.html">← Back to the leaderboard</a></p>
+        </article>
+        <article lang="ru">
+            <h2>Как считается Эло</h2>
+            <p class="elo-intro">На сайте есть отдельные рейтинги игроков и ролей. Оба основаны на результате команды, а не на оценке индивидуальной игры.</p>
+
+            <h3>Рейтинг игроков</h3>
+            <ol>
+                <li>Все начинают с рейтинга <strong>1500</strong>. Игры обрабатываются по порядку их номеров.</li>
+                <li>Перед каждой игрой сайт вычисляет средний рейтинг игроков каждой стороны. Если игрок сменил сторону, для расчёта используется его <strong>конечная сторона</strong>.</li>
+                <li>Разница средних рейтингов даёт ожидаемый результат каждой стороны. Победа равна 1, поражение — 0. Все игроки одной стороны получают одинаковое изменение за своё место.</li>
+            </ol>
+            <div class="elo-formula">Ожидаемый результат = 1 / (1 + 10<sup>(средний рейтинг противников − свой средний рейтинг) / 400</sup>)<br>Изменение рейтинга = 32 × (результат − ожидаемый результат)</div>
+            <p>Например, при равных средних рейтингах ожидаемый результат каждой стороны — 50%. Победители получают по 16 очков, проигравшие теряют по 16. Неожиданная победа приносит больше очков, ожидаемая — меньше.</p>
+            <p>Если один человек играет за несколько отдельных мест, каждое место входит в средний рейтинг своей команды, а изменения за них складываются. Рассказчик и Монстрёнок без привязки к игроку не считаются местами игроков.</p>
+
+            <h3>Новые игроки</h3>
+            <p>Отображаемый рейтинг нового игрока начинается с 1500 и пересчитывается после каждой игры. Только при расчёте среднего рейтинга команды за его первые три записанные игры используется <strong>1300</strong>, а затем — его текущий рейтинг. Игроки, отмеченные как опытные, освобождены от этого правила. Три игры считаются по всей истории, даже при фильтрации рейтинга.</p>
+
+            <h3>Рейтинг ролей</h3>
+            <p>У каждой роли свой отдельный Эло, который начинается с 1500. Для каждой игры сайт группирует <strong>начальные роли по сторонам, на которых игроки закончили игру</strong>, считает средний рейтинг разных ролей на каждой стороне и применяет ту же формулу с коэффициентом 32. Дальнейшая смена роли не заменяет начальную роль в статистике; победа или поражение роли определяется по конечной стороне игрока. Одновременные начальные роли учитываются.</p>
+            <p>Например, если Заклинатель змей становится злым Демоном и побеждает зло, это считается победой Заклинателя змей. Если вместо этого побеждает добро, это считается его поражением.</p>
+            <p>Монстрёнок без привязки к игроку учитывается как злая роль в рейтинге и проценте побед ролей, но не записывается на конкретного игрока. Процент побед роли считается по числу игр, а не по числу игроков с этой ролью.</p>
+
+            <h3>Фильтры и ограничения</h3>
+            <p>Фильтры игр в рейтинге игроков пересчитывают подходящие игры с начального рейтинга; скрытие игроков с менее чем 10 играми только убирает их строки. Эло ролей считается по всем играм: фильтры таблицы ролей меняют показанные числа игр и побед, но не рейтинг Эло.</p>
+            <p>Это приблизительная статистика нашей группы, а не точная оценка мастерства игрока или силы роли. Формула сравнивает средние рейтинги команд и отдельно не учитывает баланс сценария, размер команд, сложность ролей и решения рассказчика. При малом числе игр рейтинг особенно ненадёжен.</p>
+            <p><a href="index.html">← К рейтингу игроков</a></p>
+        </article>
+    </main>
+    <footer><p>Data tracked with love for the Town.<br><a href="https://github.com/RossFW/botc-stats" target="_blank" rel="noopener">View on GitHub</a></p></footer>
+</div>
+<script type="module" src="js/i18n.mjs?v=monsta-2026-11-16"></script>
+<script src="js/settings.js?v=monsta-2026-11-16"></script>
+</body>
+</html>

@@ -69,22 +69,26 @@ test('an unassigned Lil Monsta contributes to role Elo and win rates but not pla
     assert.deepEqual(recalcAll(modified), recalcAll(games));
 });
 
-test('role statistics and role Elo use the starting role and alignment, not later changes', () => {
-    const g = [{game_id: 1, game_mode:'Small', winning_team:'Good', players:[
-        {name:'A', role:'Heretic', roles:['Plague_Doctor','Heretic'], team:'Evil', initial_team:'Good'},
-        {name:'B', role:'Imp', team:'Evil', initial_team:'Evil'}
+test('starting role follows the player final team for wins, losses and role Elo', () => {
+    const g = [{game_id: 1, game_mode:'Small', winning_team:'Evil', players:[
+        {name:'A', role:'Vortox', roles:['Snake_Charmer','Vortox'], team:'Evil', initial_team:'Good'},
+        {name:'B', role:'Artist', team:'Good', initial_team:'Good'}
     ]}];
     const analytics = new StorytellerAnalytics(g);
     const roles = analytics.getCharacterStats();
-    assert.deepEqual(roles.find(x=>x.character==='Plague_Doctor'), {character:'Plague_Doctor', role_type:'Outsiders', games:1,wins:1,win_pct:100});
-    assert.equal(roles.some(x=>x.character==='Heretic'),false);
-    assert.deepEqual(analytics.getPlayerStats('A').roles, {'Plague_Doctor': {games:1,wins:1}});
-    assert.equal(getCharacterScriptBreakdown(g,'Plague_Doctor').totalWins,1);
-    assert.equal(getCharacterScriptBreakdown(g,'Heretic').totalGames,0);
+    assert.deepEqual(roles.find(x=>x.character==='Snake_Charmer'), {character:'Snake_Charmer', role_type:'Townsfolk', games:1,wins:1,win_pct:100});
+    assert.equal(roles.some(x=>x.character==='Vortox'),false);
+    assert.deepEqual(analytics.getPlayerStats('A').roles, {'Snake_Charmer': {games:1,wins:1}});
+    assert.equal(getCharacterScriptBreakdown(g,'Snake_Charmer').totalWins,1);
+    assert.equal(getCharacterScriptBreakdown(g,'Vortox').totalGames,0);
     const elo=calculateCharacterElo(g);
-    assert.equal(elo.Plague_Doctor.games,1);
-    assert(elo.Plague_Doctor.rating>1500);
-    assert.equal(elo.Heretic,undefined);
+    assert.equal(elo.Snake_Charmer.games,1);
+    assert(elo.Snake_Charmer.rating>1500);
+    assert.equal(elo.Vortox,undefined);
+    const lost = [{...g[0],winning_team:'Good'}];
+    assert.equal(new StorytellerAnalytics(lost).getCharacterStats().find(x=>x.character==='Snake_Charmer').wins,0);
+    assert.equal(getCharacterScriptBreakdown(lost,'Snake_Charmer').totalLosses,1);
+    assert(calculateCharacterElo(lost).Snake_Charmer.rating<1500);
 });
 
 test('starting simultaneous roles and separately aligned seats are all counted', () => {

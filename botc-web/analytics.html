@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/analytics.css?v=min-5-analytics-2026-11-09">
     <link rel="stylesheet" href="css/i18n.css?v=monsta-2026-11-16">
+    <link rel="stylesheet" href="css/elo-info.css?v=1">
 
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -166,7 +167,8 @@
 
             <!-- Characters Tab -->
             <div id="characters-tab" class="tab-content">
-                <p id="starting-roles-note" data-i18n-skip>Character statistics use the roles and teams at the start of each game.</p>
+                <p id="starting-roles-note" data-i18n-skip>Character statistics use starting roles and the teams players finished on.</p>
+                <p><a class="elo-help-link" href="elo.html" data-i18n-skip><span aria-hidden="true">ⓘ</span><span lang="en">How Elo works</span><span lang="ru">Как считается Эло</span></a></p>
                 <div class="character-filters">
                     <div class="filter-group">
                         <label for="script-filter">Script:</label>
@@ -719,7 +721,7 @@
     </div>
 
     <!-- Main Application Script -->
-    <script type="module" src="js/analyticsApp.js?v=starting-roles-2026-11-16"></script>
+    <script type="module" src="js/analyticsApp.js?v=role-final-team-2026-11-16"></script>
     <script type="module" src="js/i18n.mjs?v=monsta-2026-11-16"></script>
     <script src="js/settings.js?v=monsta-2026-11-16"></script>
 </body>

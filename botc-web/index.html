@@ -9,6 +9,7 @@
     <!-- Styles -->
     <link rel="stylesheet" href="css/styles.css?v=simultaneous-role-elo-2026-11-09">
     <link rel="stylesheet" href="css/i18n.css?v=monsta-2026-11-16">
+    <link rel="stylesheet" href="css/elo-info.css?v=1">
 
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -120,7 +121,7 @@
             <!-- Leaderboard -->
             <div class="table-container">
                 <div class="table-header">
-                    <h2>Player Rankings</h2>
+                    <div class="elo-heading"><h2>Player Rankings</h2><a class="elo-help-link" href="elo.html" data-i18n-skip><span aria-hidden="true">ⓘ</span><span lang="en">How Elo works</span><span lang="ru">Как считается Эло</span></a></div>
                     <div class="controls">
                         <label for="game-range">Range:</label>
                         <input type="text" id="game-range" placeholder="e.g., 67-69">

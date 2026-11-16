@@ -1,0 +1,16 @@
+.elo-help-link { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent-blue); font-size: .9rem; font-weight: 600; text-decoration: none; }
+.elo-help-link:hover { text-decoration: underline; }
+.elo-help-link:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 4px; border-radius: 2px; }
+.elo-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: .5rem 1rem; }
+html[lang="en"] .elo-help-link [lang="ru"], html[lang="ru"] .elo-help-link [lang="en"],
+html[lang="en"] .elo-copy > [lang="ru"], html[lang="ru"] .elo-copy > [lang="en"] { display: none; }
+.elo-copy { max-width: 900px; margin: 0 auto; }
+.elo-copy article { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: clamp(20px, 4vw, 36px); line-height: 1.65; }
+.elo-copy h2 { margin: 0 0 .4rem; }
+.elo-copy h3 { margin: 1.7rem 0 .4rem; }
+.elo-copy p { margin: .65rem 0; }
+.elo-copy ul, .elo-copy ol { padding-left: 1.35rem; margin: .5rem 0; }
+.elo-copy li { margin: .35rem 0; }
+.elo-copy .elo-intro { color: var(--text-secondary); }
+.elo-formula { overflow-wrap: anywhere; background: var(--bg-secondary); border-radius: 8px; padding: 13px 16px; margin: .8rem 0; font-size: .95rem; }
+.elo-copy a { color: var(--accent-blue); }

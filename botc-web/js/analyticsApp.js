@@ -15,7 +15,7 @@ import {
     analyzeHeadToHead,
     calculateCharacterElo,
     getCharacterScriptBreakdown, unassignedRoles, startingRoleSeats
-} from './analytics.js?v=starting-roles-2026-11-16';
+} from './analytics.js?v=role-final-team-2026-11-16';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -28,8 +28,8 @@ function playerHasRole(player, targetRole) {
 function updateStartingRoleLabels() {
     const ru = getLanguage() === 'ru';
     document.getElementById('starting-roles-note').textContent = ru
-        ? 'Статистика ролей учитывает роли и стороны в начале каждой игры.'
-        : 'Character statistics use the roles and teams at the start of each game.';
+        ? 'Статистика ролей учитывает начальные роли и стороны, на которых игроки закончили игру.'
+        : 'Character statistics use starting roles and the teams players finished on.';
     document.getElementById('starting-roles-heading').textContent = ru ? 'Начальные роли' : 'Starting Roles';
 }
 window.addEventListener('botc:languagechange', updateStartingRoleLabels);

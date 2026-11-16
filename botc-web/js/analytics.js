@@ -257,12 +257,11 @@ function alignmentSeats(player) {
     );
 }
 
-// Role statistics describe the initial setup, including simultaneous roles or seats.
+// Role statistics use starting roles and each player's final team.
 export function startingRoleSeats(player) {
-    const teamAtStart = item => ['Good', 'Evil'].includes(item.initial_team) ? item.initial_team : item.team;
     const assignments = Array.isArray(player.role_assignments) ? player.role_assignments : [];
     if (assignments.length) return assignments.filter(item => item && typeof item.role === 'string' && item.role.trim())
-        .map(item => ({ role: canonicalCharacterName(item.role), team: teamAtStart(item) }));
+        .map(item => ({ role: canonicalCharacterName(item.role), team: item.team }));
     const history = Array.isArray(player.roles) ? player.roles : [];
     const firstRole = history.find(role => typeof role === 'string' && role.trim()) || player.role;
     const simultaneously = Array.isArray(player.roles_in_play) ? player.roles_in_play : [];
@@ -270,7 +269,7 @@ export function startingRoleSeats(player) {
     for (const role of [firstRole, ...simultaneously]) {
         if (typeof role === 'string' && role.trim()) unique.set(characterRoleKey(role), canonicalCharacterName(role));
     }
-    return [...unique.values()].map(role => ({ role, team: teamAtStart(player) }));
+    return [...unique.values()].map(role => ({ role, team: player.team }));
 }
 
 function rolesInPlayerRecord(player) {
@@ -953,7 +952,7 @@ export function calculateCharacterElo(games) {
         const players = game.players || [];
         const winningTeam = game.winning_team;
 
-        // Use starting roles and teams; an unassigned Demon is a role, not a player.
+        // Use starting roles and final teams; an unassigned Demon is a role, not a player.
         const characterSeats = [...players.flatMap(startingRoleSeats), ...unassignedRoles(game)];
         const goodChars = [...new Set(
             characterSeats.filter(seat => seat.team === 'Good').map(seat => canonicalCharacterName(seat.role)).filter(Boolean)
