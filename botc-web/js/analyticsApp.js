@@ -7,6 +7,7 @@ import { setScriptCategories } from './config.js?v=monsta-2026-11-16';
 import SITE_CONFIG from './site-config.js';
 import { localizeChart, tr, getLanguage } from './i18n.mjs?v=monsta-2026-11-16';
 import { characterRoleKey } from './roleNames.mjs?v=monsta-2026-11-16';
+import { gameSeatCount, expectedGoodWinPct, evilTeamLabel } from './gameSize.mjs?v=travellers-2026-11-16';
 import {
     StorytellerAnalytics,
     extractStorytellers,
@@ -31,6 +32,9 @@ function updateStartingRoleLabels() {
         ? 'Статистика ролей учитывает начальные роли и стороны, на которых игроки закончили игру.'
         : 'Character statistics use starting roles and the teams players finished on.';
     document.getElementById('starting-roles-heading').textContent = ru ? 'Начальные роли' : 'Starting Roles';
+    document.getElementById('game-size-method-note').textContent = ru
+        ? 'Ожидаемые значения — упрощённая модель: случайная казнь каждый день, пропуск при четырёх живых и отсутствие способностей. В играх на 5–6 человек Демон выбирает случайного живого игрока, кроме себя (в том числе Приспешника); в играх от 7 — случайного доброго. Странники не учитываются в размере игры. На реальные результаты влияют сценарий, способности и решения игроков.'
+        : 'Expected rates use a simplified model: random daily executions, a skip at four alive, and no character abilities. With 5–6 players, the Demon targets a random living player other than themselves (including the Minion); with 7+, a random good player. Travellers are excluded from game size. Actual results depend on the script, abilities, and players’ decisions.';
 }
 window.addEventListener('botc:languagechange', updateStartingRoleLabels);
 
@@ -1077,28 +1081,6 @@ function renderModifierTable(tbodyId, stats, modType) {
 // GAME SIZE TAB
 // ==========================================
 
-// Expected Good win % from DP toy model (random executions, no abilities)
-// Source: https://github.com/RossFW/BotC_Probability
-const EXPECTED_GOOD_WIN_PCT = {
-    7: 54, 8: 51, 9: 59, 10: 49, 11: 59, 12: 54, 13: 59, 14: 53, 15: 62
-};
-
-// Evil team composition by player count (standard BotC rules)
-const EVIL_TEAM_BY_SIZE = {
-    5: '1 Demon, 1 Minion', 6: '1 Demon, 1 Minion', 7: '1 Demon, 1 Minion', 8: '1 Demon, 1 Minion',
-    9: '1 Demon, 2 Minions', 10: '1 Demon, 2 Minions', 11: '1 Demon, 2 Minions', 12: '1 Demon, 2 Minions',
-    13: '1 Demon, 3 Minions', 14: '1 Demon, 3 Minions', 15: '1 Demon, 3 Minions'
-};
-
-function gameSeatCount(game) {
-    return (game.players || []).reduce((count, player) => {
-        const assignments = Array.isArray(player.role_assignments)
-            ? player.role_assignments.filter(item => item && (item.team === 'Good' || item.team === 'Evil'))
-            : [];
-        return count + (assignments.length || 1);
-    }, 0);
-}
-
 /**
  * Update the game size tab.
  */
@@ -1136,9 +1118,9 @@ function updateGameSizeTab() {
         const data = bySize[size];
         const goodPct = data.games > 0 ? (data.good_wins / data.games * 100).toFixed(1) : '0.0';
         const evilPct = data.games > 0 ? (data.evil_wins / data.games * 100).toFixed(1) : '0.0';
-        const expectedGood = EXPECTED_GOOD_WIN_PCT[size];
-        const expectedEvil = expectedGood ? (100 - expectedGood) : null;
-        const evilTeam = EVIL_TEAM_BY_SIZE[size] || (size >= 15 ? '1 Demon, 3 Minions' : '?');
+        const expectedGood = expectedGoodWinPct(size);
+        const expectedEvil = expectedGood != null ? (100 - expectedGood) : null;
+        const evilTeam = evilTeamLabel(size);
 
         const row = document.createElement('tr');
         row.style.cursor = 'pointer';
