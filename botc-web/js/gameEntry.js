@@ -20,10 +20,10 @@ import {
     deleteScript
 } from './supabase.js?v=audit-v2-2026-11-09';
 
-import { initAutocomplete } from './autocomplete.js?v=ru-games-2026-11-15';
-import { FABLED, LORICS } from './config.js';
-import { canonicalRoleInput } from './roleTranslations.mjs';
-import { tr } from './i18n.mjs?v=ru-games-2026-11-15';
+import { initAutocomplete } from './autocomplete.js?v=monsta-2026-11-16';
+import { FABLED, LORICS } from './config.js?v=monsta-2026-11-16';
+import { canonicalRoleInput } from './roleTranslations.mjs?v=monsta-2026-11-16';
+import { tr } from './i18n.mjs?v=monsta-2026-11-16';
 
 // Cache for scripts
 let scriptsCache = null;
@@ -31,7 +31,7 @@ let scriptsCache = null;
 // DOM Elements - Game Entry Modal
 let modal, codeStep, formStep, codeInput, verifyBtn, codeError;
 let team1Input, team2Input, evilTeamRadios, winnerRadios;
-let scriptSelect, storytellerInput, fabledInput, loricsInput, submitBtn, deleteGameBtn, submitError, submitSuccess;
+let scriptSelect, storytellerInput, fabledInput, loricsInput, lilMonstaInput, submitBtn, deleteGameBtn, submitError, submitSuccess;
 let formTitle, formSubtitle;
 
 // DOM Elements - Game Search Modal
@@ -73,6 +73,7 @@ export function initGameEntry(onGameAdded, playerNames) {
     storytellerInput = document.getElementById('storyteller-input');
     fabledInput = document.getElementById('fabled-input');
     loricsInput = document.getElementById('lorics-input');
+    lilMonstaInput = document.getElementById('unassigned-lil-monsta');
     submitBtn = document.getElementById('submit-game-btn');
     deleteGameBtn = document.getElementById('delete-game-btn');
     submitError = document.getElementById('submit-error');
@@ -625,9 +626,14 @@ async function submitGameForm() {
     // Parse modifiers
     const fabled = parseCommaSeparated(fabledInput.value);
     const lorics = parseCommaSeparated(loricsInput.value);
-    const modifiers = (fabled.length > 0 || lorics.length > 0)
-        ? { fabled, lorics }
-        : null;
+    const preserved = { ...(originalEditGame?.modifiers || {}) };
+    const unassigned = (preserved.unassigned_roles || []).filter(item => item?.role !== "Lil'_Monsta");
+    if (lilMonstaInput.checked) unassigned.push({ role: "Lil'_Monsta", team: 'Evil' });
+    if (unassigned.length) preserved.unassigned_roles = unassigned;
+    else delete preserved.unassigned_roles;
+    if (fabled.length || lorics.length) Object.assign(preserved, { fabled, lorics });
+    else { delete preserved.fabled; delete preserved.lorics; }
+    const modifiers = Object.keys(preserved).length ? preserved : null;
 
     // Build game data
     const gameData = {
@@ -691,6 +697,7 @@ function clearForm() {
     storytellerInput.value = '';
     fabledInput.value = '';
     loricsInput.value = '';
+    lilMonstaInput.checked = false;
 }
 
 /**
@@ -977,6 +984,7 @@ function populateFormWithGame(game) {
     storytellerInput.value = game.story_teller || '';
 
     // Set modifiers
+    lilMonstaInput.checked = (game.modifiers?.unassigned_roles || []).some(item => item?.role === "Lil'_Monsta");
     if (game.modifiers) {
         fabledInput.value = (game.modifiers.fabled || []).join(', ');
         loricsInput.value = (game.modifiers.lorics || []).join(', ');

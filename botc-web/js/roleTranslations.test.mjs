@@ -10,6 +10,9 @@ test('Russian names use the fan wiki and distinguish similar characters', () => 
     assert.equal(translateRole('Boffin', 'ru'), 'Умник');
     assert.equal(translateRole('Wraith', 'ru'), 'Призрак');
     assert.equal(translateRole('Al-hadikhia', 'ru'), 'Аль-Адихия');
+    assert.equal(translateRole("Lil'_Monsta", 'ru'), 'Монстренок');
+    assert.equal(canonicalRoleInput('яга'), 'Pit-Hag');
+    assert.equal(canonicalRoleInput('Yaga'), 'Pit-Hag');
 });
 
 test('the supplied fan scripts provide their Russian character names', () => {

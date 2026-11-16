@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { StorytellerAnalytics, analyzeHeadToHead, getCharacterScriptBreakdown } from './analytics.js';
-import { setScriptCategories } from './config.js';
+import { StorytellerAnalytics, analyzeHeadToHead, getCharacterScriptBreakdown, calculateCharacterElo, getCharacterRoleType } from './analytics.js';
+import { setScriptCategories } from './config.js?v=monsta-2026-11-16';
 import { recalcAll } from './elo.js';
 
 const chair = { name: 'Chair', role: 'Courtier', team: 'Both', roles: ['Courtier'],
@@ -54,3 +54,42 @@ test('simultaneous seats both contribute to a player rating change', () => {
     assert.equal(result.Chair.gameHistory[0].roleAssignments.length, 2);
 });
 
+test('an unassigned Lil Monsta counts once for role win rates and never as a player or rating participant', () => {
+    const modified = games.map((game, index) => index < 2 ? { ...game, modifiers: { unassigned_roles: [{role: "Lil'_Monsta", team: 'Evil'}] } } : game);
+    const analytics = new StorytellerAnalytics(modified);
+    const row = analytics.getCharacterStats().find(item => item.character === "Lil'_Monsta");
+    const detail = getCharacterScriptBreakdown(modified, "Lil'_Monsta");
+    assert.equal(row.games, 2);
+    assert.equal(row.wins, 1);
+    assert.equal(detail.totalGames, 2);
+    assert.equal(detail.totalWins, 1);
+    assert.deepEqual(detail.players, []);
+    assert.equal(calculateCharacterElo(modified)["Lil'_Monsta"], undefined);
+    assert.deepEqual(recalcAll(modified), recalcAll(games));
+});
+
+test('Yaga is grouped and classified as Pit-Hag', () => {
+    const g = [{ game_id: 1, game_mode: 'Small', winning_team: 'Evil', players: [{name:'A', role:'Yaga', team:'Evil'}] }];
+    const row = new StorytellerAnalytics(g).getCharacterStats()[0];
+    assert.equal(row.character, 'Pit-Hag');
+    assert.equal(row.role_type, 'Minions');
+});
+
+test('homebrew character types come from the supplied scripts and Emotions reference', () => {
+    for (const [name, type] of Object.entries({Faith:'Demons', Hope:'Demons', Love:'Demons',
+        Gratitude:'Minions', Happiness:'Minions', Joy:'Minions', Boredom:'Outsiders',
+        Disappointment:'Outsiders', Guilt:'Townsfolk', Sadness:'Townsfolk', Fear:'Townsfolk',
+        Scrounger:'Townsfolk', Occultist:'Outsiders', Miasma:'Minions', "Au'Wre":'Demons',
+        Defector:'Townsfolk', Internal_Wiretap:'Townsfolk', Haruspex:'Minions',
+        Spartacus:'Outsiders', Cleopatra:'Demons', Aristocrat:'Townsfolk'})) {
+        assert.equal(getCharacterRoleType(name), type, name);
+    }
+});
+
+test('good Minions in Hope games retain their type and win with their actual team', () => {
+    const g=[{game_id:1, game_mode:'Emotions', winning_team:'Good', players:[
+        {name:'A',role:'Gratitude',team:'Good'}, {name:'B',role:'Hope',team:'Evil'}]}];
+    const row=new StorytellerAnalytics(g).getCharacterStats().find(item=>item.character==='Gratitude');
+    assert.equal(row.role_type,'Minions');
+    assert.equal(row.wins,1);
+});

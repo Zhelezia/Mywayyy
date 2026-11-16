@@ -35,6 +35,8 @@ function isAlHadikhiaVariant(name) {
 
 export function canonicalCharacterName(name) {
     const trimmed = String(name || '').trim().replace(/\s+/g, ' ');
+    if (compactName(trimmed) === 'yaga') return 'Pit-Hag';
+    if (compactName(trimmed) === 'aristocrat') return 'Noble';
     return isAlHadikhiaVariant(trimmed) ? 'Al-Hadikhia' : trimmed;
 }
 

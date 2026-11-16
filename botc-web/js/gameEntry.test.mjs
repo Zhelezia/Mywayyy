@@ -16,7 +16,7 @@ function harness(team1, team2, originalPlayers = []) {
     const errors = [];
     const context = {
         team1Input: { value: team1 }, team2Input: { value: team2 },
-        storytellerInput: { value: 'ST' }, fabledInput: { value: '' }, loricsInput: { value: '' },
+        storytellerInput: { value: 'ST' }, fabledInput: { value: '' }, loricsInput: { value: '' }, lilMonstaInput: { checked: false },
         scriptSelect: { value: 'Script' }, submitBtn: {}, submitError: {}, submitSuccess: {},
         editMode: true, currentEditGameId: 42,
         originalEditGame: { players: originalPlayers }, originalEditLines: null,
@@ -72,4 +72,14 @@ test('Russian simultaneous seats are parsed with their alignments', async () => 
         { role: 'Courtier', team: 'Good' }, { role: 'Goblin', team: 'Evil' }
     ]);
     assert.equal(h.submitted[0].data.players[1].role, 'Oracle');
+});
+
+test('unassigned Lil Monsta can be saved without losing other game metadata', async () => {
+    const h = harness('Игрок Goblin', 'Друг Artist');
+    h.context.originalEditGame.modifiers = { custom: 'preserve' };
+    h.context.lilMonstaInput.checked = true;
+    await h.context.submitGameForm();
+    assert.deepEqual(JSON.parse(JSON.stringify(h.submitted[0].data.modifiers)), {
+        custom: 'preserve', unassigned_roles: [{ role: "Lil'_Monsta", team: 'Evil' }]
+    });
 });

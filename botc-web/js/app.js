@@ -4,11 +4,11 @@
 
 import { recalcAll, getLeaderboard, pctToStr, getRatingDelta } from './elo.js?v=experienced-2026-11-15';
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-v2-2026-11-09';
-import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=ru-games-2026-11-15';
-import { categorizeScript, setScriptCategories } from './config.js';
-import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=simultaneous-role-elo-2026-11-09';
+import { initGameEntry, updatePlayerNames } from './gameEntry.js?v=monsta-2026-11-16';
+import { categorizeScript, setScriptCategories } from './config.js?v=monsta-2026-11-16';
+import { filterGames, getFilterOptions } from './leaderboardFilters.mjs?v=monsta-2026-11-16';
 import SITE_CONFIG from './site-config.js';
-import { localizeChart } from './i18n.mjs?v=ru-games-2026-11-15';
+import { localizeChart } from './i18n.mjs?v=monsta-2026-11-16';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);

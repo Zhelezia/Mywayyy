@@ -1,6 +1,6 @@
 import { fetchGames } from './supabase.js?v=audit-v2-2026-11-09';
-import { getLanguage, tr } from './i18n.mjs?v=ru-games-2026-11-15';
-import { translateRole } from './roleTranslations.mjs';
+import { getLanguage, tr } from './i18n.mjs?v=monsta-2026-11-16';
+import { translateRole } from './roleTranslations.mjs?v=monsta-2026-11-16';
 
 const $ = id => document.getElementById(id);
 let games = [];
@@ -16,7 +16,7 @@ const copy = {
     loading: ['Loading games…', 'Загрузка игр…'], error: ['Could not load games. Please reload the page.', 'Не удалось загрузить игры. Обновите страницу.'],
     source: ['Original note', 'Исходная запись'], history: ['Role history', 'История ролей'],
     simultaneous: ['Roles in play', 'Роли одновременно'], seats: ['Seats', 'Места'],
-    teamChange: ['Team change', 'Смена стороны'], modifiers: ['Modifiers', 'Модификаторы'],
+    teamChange: ['Team change', 'Смена стороны'], modifiers: ['Modifiers', 'Модификаторы'], unassigned: ['Roles in play, unassigned', 'Роли в игре без привязки к игроку'],
     none: ['None', 'Нет'], goodWon: ['Good won', 'Победа добра'], evilWon: ['Evil won', 'Победа зла'],
     unknown: ['Unknown', 'Неизвестно'], noDate: ['Date not recorded', 'Дата не указана']
 };
@@ -109,7 +109,9 @@ function gameCard(game, expanded) {
     for (const player of game.players || []) players.appendChild(playerDetails(player));
     body.appendChild(players);
     const mods = game.modifiers || {};
-    const entries = Object.entries(mods).filter(([, value]) => Array.isArray(value) ? value.length : value != null && value !== '');
+    const looseRoles = Array.isArray(mods.unassigned_roles) ? mods.unassigned_roles : [];
+    if (looseRoles.length) body.appendChild(node('div', 'game-modifiers', `${label('unassigned')}: ${looseRoles.map(item => `${role(item.role)} (${team(item.team)})`).join(', ')}`));
+    const entries = Object.entries(mods).filter(([name, value]) => name !== 'unassigned_roles' && (Array.isArray(value) ? value.length : value != null && value !== ''));
     const modifierText = entries.length ? entries.map(([name, value]) => `${tr(name === 'fabled' ? 'Fabled' : name === 'lorics' ? 'Lorics' : name)}: ${Array.isArray(value) ? value.map(role).join(', ') : String(value)}`).join(' · ') : label('none');
     body.appendChild(node('div', 'game-modifiers', `${label('modifiers')}: ${modifierText}`));
     card.appendChild(body); return card;
@@ -130,6 +132,7 @@ function render() {
         if (storyteller && !String(game.story_teller || '').split('+').map(s => s.trim()).includes(storyteller)) return false;
         if (!query) return true;
         const searchable = [game.game_id, game.game_mode, game.story_teller, game.winning_team];
+        for (const item of game.modifiers?.unassigned_roles || []) searchable.push(item.role, translateRole(item.role, 'ru'));
         for (const p of game.players || []) {
             const roles = distinct([p.role, ...(p.roles || []), ...(p.roles_in_play || []), ...(p.role_assignments || []).map(item => item.role)]);
             searchable.push(p.name, p.source_role, ...roles, ...roles.map(value => translateRole(value, 'ru')));

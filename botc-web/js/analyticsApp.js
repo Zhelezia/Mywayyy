@@ -3,10 +3,10 @@
  */
 
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-v2-2026-11-09';
-import { setScriptCategories } from './config.js';
+import { setScriptCategories } from './config.js?v=monsta-2026-11-16';
 import SITE_CONFIG from './site-config.js';
-import { localizeChart, tr } from './i18n.mjs?v=ru-games-2026-11-15';
-import { characterRoleKey } from './roleNames.mjs';
+import { localizeChart, tr } from './i18n.mjs?v=monsta-2026-11-16';
+import { characterRoleKey } from './roleNames.mjs?v=monsta-2026-11-16';
 import {
     StorytellerAnalytics,
     extractStorytellers,
@@ -14,8 +14,8 @@ import {
     getCharacterRoleType,
     analyzeHeadToHead,
     calculateCharacterElo,
-    getCharacterScriptBreakdown
-} from './analytics.js?v=audit-2026-11-09';
+    getCharacterScriptBreakdown, unassignedRoles
+} from './analytics.js?v=monsta-2026-11-16';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -474,7 +474,7 @@ function updateCharactersTab() {
         const eloData = characterEloRatings[char.character];
         return {
             ...char,
-            elo: eloData ? Math.round(eloData.rating) : 1500
+            elo: eloData ? Math.round(eloData.rating) : null
         };
     });
 
@@ -492,12 +492,12 @@ function updateCharactersTab() {
         row.dataset.elo = char.elo;
 
         // Color-code ELO: green if above 1500, red if below
-        const eloClass = char.elo >= 1500 ? 'elo-positive' : 'elo-negative';
+        const eloClass = char.elo === null ? '' : char.elo >= 1500 ? 'elo-positive' : 'elo-negative';
 
         row.innerHTML = `
             <td>${escapeHtml(char.character)}</td>
             <td><span class="role-type-badge ${char.role_type.toLowerCase()}">${char.role_type}</span></td>
-            <td class="${eloClass}">${char.elo}</td>
+            <td class="${eloClass}">${char.elo ?? '—'}</td>
             <td>${char.win_pct.toFixed(1)}%</td>
             <td>${char.wins}</td>
             <td>${char.games}</td>
@@ -1507,7 +1507,7 @@ function showCharacterDetail(characterName, roleType, elo) {
     typeEl.className = `role-type-badge ${roleType.toLowerCase()}`;
 
     // Populate summary stats
-    document.getElementById('char-detail-elo').textContent = elo;
+    document.getElementById('char-detail-elo').textContent = elo ?? '—';
     document.getElementById('char-detail-winpct').textContent = `${breakdown.winPct}%`;
     document.getElementById('char-detail-record').textContent = `${breakdown.totalWins}-${breakdown.totalLosses}`;
     document.getElementById('char-detail-games').textContent = breakdown.totalGames;
@@ -1579,7 +1579,8 @@ function showCharacterDetail(characterName, roleType, elo) {
             closeCharacterDetail();
             const targetRole = characterRoleKey(characterName);
             const games = gamesInSelection.filter(g =>
-                g.players && g.players.some(p => playerHasRole(p, targetRole)));
+                (g.players || []).some(p => playerHasRole(p, targetRole)) ||
+                unassignedRoles(g).some(item => characterRoleKey(item.role) === targetRole));
             showGameHistory(characterName.replace(/_/g, ' '), roleType, games);
         };
     }

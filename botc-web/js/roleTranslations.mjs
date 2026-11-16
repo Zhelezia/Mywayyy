@@ -1,5 +1,5 @@
 import { fanRoleNames } from './fanRoleNames.mjs';
-import { canonicalCharacterName } from './roleNames.mjs';
+import { canonicalCharacterName } from './roleNames.mjs?v=monsta-2026-11-16';
 
 // Standard character names follow the Russian BOTC fan wiki; custom names
 // come from the supplied Russian script files.
@@ -21,7 +21,7 @@ export const roleNamesRu = {
     Sweetheart:'Душечка', Barber:'Парикмахер', Evil_Twin:'Злой близнец', Witch:'Ведьма',
     Cerenovus:'Цереновус', 'Pit-Hag':'Яга', Yaga:'Яга', Vigormortis:'Вигормортис', Fang_Gu:'Фан Гу',
     No_Dashii:'Но Даши', Vortox:'Вортокс', Acrobat:'Акробат', Alchemist:'Алхимик', Alsaahir:'Аль-Сахер',
-    Amnesiac:'Амнезиак', Aristocrat:'Аристократ', Atheist:'Атеист', Balloonist:'Аэронавт', Banshee:'Банши',
+    Amnesiac:'Амнезиак', Noble:'Аристократ', Atheist:'Атеист', Balloonist:'Аэронавт', Banshee:'Банши',
     High_Priestess:'Верховная жрица', General:'Генерал', Village_Idiot:'Дурачок', Cannibal:'Каннибал',
     King:'Король', Pixie:'Пикси', Princess:'Принцесса', Preacher:'Проповедник', Fisherman:'Рыбак',
     Knight:'Рыцарь', Steward:'Управляющий', Farmer:'Фермер', Magician:'Фокусник', Choirboy:'Хорист',
@@ -31,14 +31,14 @@ export const roleNamesRu = {
     Goblin:'Гоблин', Xaan:'Ксаан', Marionette:'Марионетка', Mezepheles:'Мецефель', Boffin:'Умник',
     Boomdandy:'Бомбардир', Wraith:'Призрак', Summoner:'Призыватель', Psychopath:'Психопат',
     'Al-Hadikhia':'Аль-Адихия', Lord_Of_Typhon:'Владыка Тифона', Kazali:'Казали', Leviathan:'Левиафан',
-    Legion:'Легион', Riot:'Мятежник', Ojo:'Охо', Lleech:'Пиявица', Yaggababble:'Ягатрёп',
+    Legion:'Легион', Riot:'Мятежник', Ojo:'Охо', Lleech:'Пиявица', Yaggababble:'Ягатрёп', "Lil'_Monsta":'Монстренок',
     Apprentice:'Ученик', Judge:'Судья', Barista:'Бариста', Harlot:'Распутница',
     Angel:'Ангел', Djinn:'Джинн', Bootlegger:'Бутлегер', Storm_Catcher:'Ловец бури',
     Actor:'Актер', Mortician:'Могильщик', Physician:'Лекарь', Standard_Bearer:'Знаменосец',
     Spartacus:'Спартак', Haruspex:'Гаруспик', Cleopatra:'Клеопатра',
     Anger:'Злоба', Anxiety:'Тревожность', Boredom:'Скука', Disappointment:'Разочарование',
     Faith:'Вера', Fear:'Страх', Gratitude:'Благодарность', Grief:'Скорбь', Guilt:'Вина',
-    Happiness:'Счастье', Hope:'Надежда', Joy:'Восторг', Sadness:'Грусть',
+    Happiness:'Счастье', Hope:'Надежда', Love:'Любовь', Joy:'Восторг', Sadness:'Грусть',
     ...fanRoleNames,
     Internal_Wiretap:'Внутренняя прослушка', External_Wiretap:'Внешняя прослушка'
 };
@@ -67,5 +67,5 @@ export function translateRole(role, language = 'en') {
 
 export function canonicalRoleInput(role) {
     const value = String(role || '').trim();
-    return byRussian.get(key(value)) || byEnglish.get(key(value))?.en || value;
+    return canonicalCharacterName(byRussian.get(key(value)) || byEnglish.get(key(value))?.en || value);
 }

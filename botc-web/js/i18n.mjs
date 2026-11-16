@@ -1,4 +1,4 @@
-import { translateRole } from './roleTranslations.mjs';
+import { translateRole } from './roleTranslations.mjs?v=monsta-2026-11-16';
 
 const storageKey = 'botc-language';
 const dictionary = {
@@ -40,6 +40,7 @@ const dictionary = {
     "Put team-changers in their FINAL team's section.":'Игроков, сменивших сторону, указывайте в разделе их конечной стороны.',
     'Multiple storytellers? Use':'Несколько рассказчиков? Используйте', '(e.g.,':'(например,',
     'Fabled & Lorics:':'Сказочники и летописцы:',
+    "Lil' Monsta in play (not assigned to a player)":'Монстренок в игре (без привязки к игроку)',
     'Optional comma-separated fields below the script. These are game-level modifiers, not player roles.':'Необязательные поля под сценарием. Перечисляйте через запятую.',
     'Team 1 Players':'Игроки команды 1', 'Team 2 Players':'Игроки команды 2',
     'One player with simultaneous roles: use':'Если у игрока одновременно несколько ролей, используйте',

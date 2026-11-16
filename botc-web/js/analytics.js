@@ -9,12 +9,14 @@
  */
 
 // Re-export script helpers from config.js so they share the dynamic category map
-import { categorizeScript, normalizeScriptName } from './config.js';
-import { canonicalCharacterName, characterRoleKey } from './roleNames.mjs';
+import { categorizeScript, normalizeScriptName } from './config.js?v=monsta-2026-11-16';
+import { canonicalCharacterName, characterRoleKey } from './roleNames.mjs?v=monsta-2026-11-16';
+import { homebrewRoleTypes } from './homebrewRoleTypes.mjs?v=monsta-2026-11-16';
 export { categorizeScript, normalizeScriptName };
 
 // Character role type mapping
 const CHARACTER_ROLE_TYPES = {
+    ...homebrewRoleTypes,
     // Demons
     "al-hadikhia": "Demons",
     "fang_gu": "Demons",
@@ -37,7 +39,6 @@ const CHARACTER_ROLE_TYPES = {
     "zombuul": "Demons",
     "draconis": "Demons",
     "seclorum": "Demons",
-    "yaga": "Demons",
     // Minions
     "assassin": "Minions",
     "baron": "Minions",
@@ -263,6 +264,11 @@ function rolesInPlayerRecord(player) {
         ...(Array.isArray(player.role_assignments) ? player.role_assignments.map(item => item.role) : []),
         player.role
     ].filter(role => typeof role === 'string' && role.trim()))];
+}
+
+export function unassignedRoles(game) {
+    const roles = game.modifiers?.unassigned_roles;
+    return Array.isArray(roles) ? roles.filter(item => item && typeof item.role === 'string' && ['Good', 'Evil'].includes(item.team)) : [];
 }
 
 function teamsForPlayerRole(player, role) {
@@ -735,6 +741,13 @@ export class StorytellerAnalytics {
                 }
             }
 
+            for (const item of unassignedRoles(game)) {
+                const role = canonicalCharacterName(item.role);
+                if (!role) continue;
+                if (!roleTeams[role]) roleTeams[role] = [];
+                roleTeams[role].push(item.team);
+            }
+
             // Count unique roles per game
             for (const [role, teams] of Object.entries(roleTeams)) {
                 if (!charStats[role]) {
@@ -1042,9 +1055,10 @@ export function getCharacterScriptBreakdown(games, characterName) {
         const targetRole = characterRoleKey(characterName);
         const playersWithChar = players.filter(p =>
             rolesInPlayerRecord(p).some(role => characterRoleKey(role) === targetRole));
+        const unassigned = unassignedRoles(game).filter(item => characterRoleKey(item.role) === targetRole);
 
         // Skip games where this character doesn't appear
-        if (playersWithChar.length === 0) continue;
+        if (playersWithChar.length === 0 && unassigned.length === 0) continue;
 
         // Count this as ONE game (not per player)
         totalGames++;
@@ -1056,7 +1070,8 @@ export function getCharacterScriptBreakdown(games, characterName) {
 
         // Did the character win? Check if any player with this character was on winning team
         // (For Legion/Village Idiot, they should all be on same team anyway)
-        const charWon = playersWithChar.some(p => teamsForPlayerRole(p, characterName).includes(winningTeam));
+        const charWon = playersWithChar.some(p => teamsForPlayerRole(p, characterName).includes(winningTeam)) ||
+            unassigned.some(item => item.team === winningTeam);
 
         if (charWon) {
             totalWins++;
@@ -1086,4 +1101,3 @@ export function getCharacterScriptBreakdown(games, characterName) {
         players: sortedPlayers
     };
 }
-

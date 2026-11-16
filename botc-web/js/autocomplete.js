@@ -5,9 +5,9 @@
  * in the team textareas and storyteller input.
  */
 
-import { CHARACTER_ROLE_TYPES } from './config.js';
-import { translateRole } from './roleTranslations.mjs';
-import { getLanguage } from './i18n.mjs?v=ru-games-2026-11-15';
+import { CHARACTER_ROLE_TYPES } from './config.js?v=monsta-2026-11-16';
+import { translateRole } from './roleTranslations.mjs?v=monsta-2026-11-16';
+import { getLanguage } from './i18n.mjs?v=monsta-2026-11-16';
 
 // Shared player names list (updated when games are refreshed)
 let playerNames = [];

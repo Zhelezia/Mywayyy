@@ -3,6 +3,9 @@
  * Ported from botc_config.py
  */
 
+import { homebrewRoleTypes } from './homebrewRoleTypes.mjs?v=monsta-2026-11-16';
+import { canonicalCharacterName } from './roleNames.mjs?v=monsta-2026-11-16';
+
 // Scripts considered part of the normal rotation
 // All other scripts are considered Teensyville (small-player scripts)
 export const NORMAL_SCRIPTS = new Set([
@@ -58,6 +61,7 @@ export const COMMON_SCRIPTS = [
 
 // Mapping of normalized character names to their role types
 export const CHARACTER_ROLE_TYPES = {
+    ...homebrewRoleTypes,
     // Demons
     "al-hadikhia": "Demons",
     "fang_gu": "Demons",
@@ -280,7 +284,7 @@ export function categorizeScript(name) {
  */
 export function normalizeCharacterName(name) {
     if (!name) return "";
-    return name.replace(/ /g, "_").toLowerCase().trim();
+    return canonicalCharacterName(name).replace(/ /g, "_").toLowerCase().trim();
 }
 
 /**

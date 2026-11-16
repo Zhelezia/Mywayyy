@@ -1,4 +1,4 @@
-import {canonicalCharacterName, characterRoleKey} from './roleNames.mjs';
+import {canonicalCharacterName, characterRoleKey} from './roleNames.mjs?v=monsta-2026-11-16';
 
 function storytellerNames(value) {
     return String(value || '')
@@ -100,4 +100,3 @@ function matchesSelection(selection, gameValues, normalize = value => value) {
         ? selection.include.every(value => available.has(normalize(value)))
         : selection.include.some(value => available.has(normalize(value)));
 }
-
