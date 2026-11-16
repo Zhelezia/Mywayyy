@@ -54,7 +54,7 @@ test('simultaneous seats both contribute to a player rating change', () => {
     assert.equal(result.Chair.gameHistory[0].roleAssignments.length, 2);
 });
 
-test('an unassigned Lil Monsta counts once for role win rates and never as a player or rating participant', () => {
+test('an unassigned Lil Monsta contributes to role Elo and win rates but not player ratings', () => {
     const modified = games.map((game, index) => index < 2 ? { ...game, modifiers: { unassigned_roles: [{role: "Lil'_Monsta", team: 'Evil'}] } } : game);
     const analytics = new StorytellerAnalytics(modified);
     const row = analytics.getCharacterStats().find(item => item.character === "Lil'_Monsta");
@@ -64,8 +64,40 @@ test('an unassigned Lil Monsta counts once for role win rates and never as a pla
     assert.equal(detail.totalGames, 2);
     assert.equal(detail.totalWins, 1);
     assert.deepEqual(detail.players, []);
-    assert.equal(calculateCharacterElo(modified)["Lil'_Monsta"], undefined);
+    assert.equal(calculateCharacterElo(modified)["Lil'_Monsta"].games, 2);
+    assert.equal(calculateCharacterElo(modified)["Lil'_Monsta"].wins, 1);
     assert.deepEqual(recalcAll(modified), recalcAll(games));
+});
+
+test('role statistics and role Elo use the starting role and alignment, not later changes', () => {
+    const g = [{game_id: 1, game_mode:'Small', winning_team:'Good', players:[
+        {name:'A', role:'Heretic', roles:['Plague_Doctor','Heretic'], team:'Evil', initial_team:'Good'},
+        {name:'B', role:'Imp', team:'Evil', initial_team:'Evil'}
+    ]}];
+    const analytics = new StorytellerAnalytics(g);
+    const roles = analytics.getCharacterStats();
+    assert.deepEqual(roles.find(x=>x.character==='Plague_Doctor'), {character:'Plague_Doctor', role_type:'Outsiders', games:1,wins:1,win_pct:100});
+    assert.equal(roles.some(x=>x.character==='Heretic'),false);
+    assert.deepEqual(analytics.getPlayerStats('A').roles, {'Plague_Doctor': {games:1,wins:1}});
+    assert.equal(getCharacterScriptBreakdown(g,'Plague_Doctor').totalWins,1);
+    assert.equal(getCharacterScriptBreakdown(g,'Heretic').totalGames,0);
+    const elo=calculateCharacterElo(g);
+    assert.equal(elo.Plague_Doctor.games,1);
+    assert(elo.Plague_Doctor.rating>1500);
+    assert.equal(elo.Heretic,undefined);
+});
+
+test('starting simultaneous roles and separately aligned seats are all counted', () => {
+    const seats = [{game_id:1, game_mode:'Small', winning_team:'Good', players:[
+        {name:'A',role:'Libertine',roles:['Libertine'],roles_in_play:['Libertine','Truther'],team:'Good'},
+        {name:'Chair',role:'Courtier',role_assignments:[{role:'Courtier',team:'Good'},{role:'Goblin',team:'Evil'}],team:'Both'}
+    ]}];
+    const stats=new StorytellerAnalytics(seats).getCharacterStats();
+    for(const role of ['Libertine','Truther','Courtier','Goblin']) assert(stats.some(item=>item.character===role));
+    assert.equal(stats.find(x=>x.character==='Courtier').wins,1);
+    assert.equal(stats.find(x=>x.character==='Goblin').wins,0);
+    const elo=calculateCharacterElo(seats);
+    assert(elo.Libertine && elo.Truther && elo.Courtier && elo.Goblin);
 });
 
 test('Yaga is grouped and classified as Pit-Hag', () => {

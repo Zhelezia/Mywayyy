@@ -5,7 +5,7 @@
 import { fetchGames, fetchScripts, isDemoMode } from './supabase.js?v=audit-v2-2026-11-09';
 import { setScriptCategories } from './config.js?v=monsta-2026-11-16';
 import SITE_CONFIG from './site-config.js';
-import { localizeChart, tr } from './i18n.mjs?v=monsta-2026-11-16';
+import { localizeChart, tr, getLanguage } from './i18n.mjs?v=monsta-2026-11-16';
 import { characterRoleKey } from './roleNames.mjs?v=monsta-2026-11-16';
 import {
     StorytellerAnalytics,
@@ -14,25 +14,25 @@ import {
     getCharacterRoleType,
     analyzeHeadToHead,
     calculateCharacterElo,
-    getCharacterScriptBreakdown, unassignedRoles
-} from './analytics.js?v=monsta-2026-11-16';
+    getCharacterScriptBreakdown, unassignedRoles, startingRoleSeats
+} from './analytics.js?v=starting-roles-2026-11-16';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 }
 
-function recordedRoles(player) {
-    return new Set([
-        ...(Array.isArray(player.roles) ? player.roles : []),
-        ...(Array.isArray(player.roles_in_play) ? player.roles_in_play : []),
-        ...(Array.isArray(player.role_assignments) ? player.role_assignments.map(item => item.role) : []),
-        player.role
-    ].filter(role => typeof role === 'string' && role.trim()));
+function playerHasRole(player, targetRole) {
+    return startingRoleSeats(player).some(seat => characterRoleKey(seat.role) === targetRole);
 }
 
-function playerHasRole(player, targetRole) {
-    return [...recordedRoles(player)].some(role => characterRoleKey(role) === targetRole);
+function updateStartingRoleLabels() {
+    const ru = getLanguage() === 'ru';
+    document.getElementById('starting-roles-note').textContent = ru
+        ? 'Статистика ролей учитывает роли и стороны в начале каждой игры.'
+        : 'Character statistics use the roles and teams at the start of each game.';
+    document.getElementById('starting-roles-heading').textContent = ru ? 'Начальные роли' : 'Starting Roles';
 }
+window.addEventListener('botc:languagechange', updateStartingRoleLabels);
 
 // ==========================================
 // STATE
@@ -50,6 +50,7 @@ let currentSortAscending = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        updateStartingRoleLabels();
         await loadData();
         setupEventListeners();
         showContent();

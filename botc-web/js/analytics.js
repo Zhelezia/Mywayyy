@@ -257,13 +257,24 @@ function alignmentSeats(player) {
     );
 }
 
+// Role statistics describe the initial setup, including simultaneous roles or seats.
+export function startingRoleSeats(player) {
+    const teamAtStart = item => ['Good', 'Evil'].includes(item.initial_team) ? item.initial_team : item.team;
+    const assignments = Array.isArray(player.role_assignments) ? player.role_assignments : [];
+    if (assignments.length) return assignments.filter(item => item && typeof item.role === 'string' && item.role.trim())
+        .map(item => ({ role: canonicalCharacterName(item.role), team: teamAtStart(item) }));
+    const history = Array.isArray(player.roles) ? player.roles : [];
+    const firstRole = history.find(role => typeof role === 'string' && role.trim()) || player.role;
+    const simultaneously = Array.isArray(player.roles_in_play) ? player.roles_in_play : [];
+    const unique = new Map();
+    for (const role of [firstRole, ...simultaneously]) {
+        if (typeof role === 'string' && role.trim()) unique.set(characterRoleKey(role), canonicalCharacterName(role));
+    }
+    return [...unique.values()].map(role => ({ role, team: teamAtStart(player) }));
+}
+
 function rolesInPlayerRecord(player) {
-    return [...new Set([
-        ...(Array.isArray(player.roles) ? player.roles : []),
-        ...(Array.isArray(player.roles_in_play) ? player.roles_in_play : []),
-        ...(Array.isArray(player.role_assignments) ? player.role_assignments.map(item => item.role) : []),
-        player.role
-    ].filter(role => typeof role === 'string' && role.trim()))];
+    return startingRoleSeats(player).map(seat => seat.role);
 }
 
 export function unassignedRoles(game) {
@@ -273,10 +284,7 @@ export function unassignedRoles(game) {
 
 function teamsForPlayerRole(player, role) {
     const key = characterRoleKey(role);
-    const teams = (Array.isArray(player.role_assignments) ? player.role_assignments : [])
-        .filter(item => item && characterRoleKey(item.role) === key && item.team)
-        .map(item => item.team);
-    return teams.length ? teams : [player.team];
+    return startingRoleSeats(player).filter(item => characterRoleKey(item.role) === key).map(item => item.team);
 }
 
 /**
@@ -945,14 +953,8 @@ export function calculateCharacterElo(games) {
         const players = game.players || [];
         const winningTeam = game.winning_team;
 
-        // Count simultaneous seats under their recorded alignment.
-        const characterSeats = players.flatMap(p => {
-            if (Array.isArray(p.role_assignments) && p.role_assignments.length) {
-                return p.role_assignments.map(item => ({ role: item.role, team: item.team }));
-            }
-            return [...new Set([p.role, ...(Array.isArray(p.roles_in_play) ? p.roles_in_play : [])])]
-                .map(role => ({ role, team: p.team }));
-        });
+        // Use starting roles and teams; an unassigned Demon is a role, not a player.
+        const characterSeats = [...players.flatMap(startingRoleSeats), ...unassignedRoles(game)];
         const goodChars = [...new Set(
             characterSeats.filter(seat => seat.team === 'Good').map(seat => canonicalCharacterName(seat.role)).filter(Boolean)
         )];
