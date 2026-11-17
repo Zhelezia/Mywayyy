@@ -27,15 +27,15 @@
             <h3>Player ratings</h3>
             <ol>
                 <li>Everyone starts with a rating of <strong>1500</strong>. Games are replayed in game-number order.</li>
-                <li>Before each game, the tracker averages the ratings of the players on each side. It uses each player’s <strong>final team</strong> if they changed sides.</li>
+                <li>The tracker averages the players’ pregame ratings by <strong>final team</strong>. The Politician always counts toward Good’s average, even if they finish Evil. A Snake Charmer who becomes an evil Demon counts toward Evil’s average.</li>
                 <li>The difference between those averages gives each side an expected score. A win scores 1; a loss scores 0. Everyone on the same side receives the same change for that seat.</li>
             </ol>
-            <div class="elo-formula">Expected score = 1 / (1 + 10<sup>(opposing average − own average) / 400</sup>)<br>Rating change = 32 × (result − expected score)</div>
-            <p>For example, if the two averages are equal, each side’s expected score is 50%. The winners gain 16 points and the losers lose 16 points. An unexpected win gains more; an expected win gains less.</p>
-            <p>When one person plays multiple separate seats, each seat is included in its team’s average and its changes are added together for that person. The storyteller and an unassigned Lil’ Monsta aren’t player seats.</p>
+            <div class="elo-formula">Expected score = 1 / (1 + 10<sup>(opposing average − own average) / 400</sup>)<br>Rating change = 16 × (result − expected score)</div>
+            <p>At even odds, each winner gains 8 points and each loser loses 8. The player’s final team determines their points and win record. A Politician who turns Evil and wins earns the same points as the other Evil winners.</p>
+            <p>Each separate seat counts once. A player occupying multiple seats receives the sum of their changes. Each seat occupied by the chair (Стул) contributes 1500 to its team average. The chair has its own leaderboard rating and gains or loses points for each seat. The storyteller and an unassigned Lil’ Monsta aren’t player seats.</p>
 
             <h3>New players</h3>
-            <p>A new player’s displayed rating still starts at 1500 and is updated after each game. For the team-average calculation only, the tracker uses <strong>1300</strong> for their first three recorded games, then uses their actual rating. Players marked as experienced are exempt. The first three games are counted across the full history, even when the leaderboard is filtered.</p>
+            <p>For their first four appearances, a newcomer contributes their current rating minus <strong>200, 150, 100 and 50</strong> points respectively to their team average. From game five they contribute their full rating. Their displayed rating starts at 1500 and updates after every game. Players marked as experienced use their full rating from game one. Appearances count across the full history, including when the leaderboard is filtered.</p>
 
             <h3>Character ratings</h3>
             <p>Each character has its own separate Elo, starting at 1500. For each game, the tracker groups the <strong>starting roles by the teams their players finished on</strong>, averages the distinct character ratings on each side, and applies the same expected-score formula with K = 32. Later role changes do not replace the starting role in its statistics; the player's final team determines whether that role wins or loses. Simultaneous starting roles are included.</p>
@@ -54,15 +54,15 @@
             <h3>Рейтинг игроков</h3>
             <ol>
                 <li>Все начинают с рейтинга <strong>1500</strong>. Игры обрабатываются по порядку их номеров.</li>
-                <li>Перед каждой игрой сайт вычисляет средний рейтинг игроков каждой стороны. Если игрок сменил сторону, для расчёта используется его <strong>конечная сторона</strong>.</li>
+                <li>Сайт берёт рейтинги игроков до игры и вычисляет среднее для каждой команды по <strong>конечной стороне</strong> игроков. Политик всегда входит в расчёт за добро, даже если в конце стал злым. Заклинатель змей, ставший злым Демоном, входит в расчёт за зло.</li>
                 <li>Разница средних рейтингов даёт ожидаемый результат каждой стороны. Победа равна 1, поражение — 0. Все игроки одной стороны получают одинаковое изменение за своё место.</li>
             </ol>
-            <div class="elo-formula">Ожидаемый результат = 1 / (1 + 10<sup>(средний рейтинг противников − свой средний рейтинг) / 400</sup>)<br>Изменение рейтинга = 32 × (результат − ожидаемый результат)</div>
-            <p>Например, при равных средних рейтингах ожидаемый результат каждой стороны — 50%. Победители получают по 16 очков, проигравшие теряют по 16. Неожиданная победа приносит больше очков, ожидаемая — меньше.</p>
-            <p>Если один человек играет за несколько отдельных мест, каждое место входит в средний рейтинг своей команды, а изменения за них складываются. Рассказчик и Монстрёнок без привязки к игроку не считаются местами игроков.</p>
+            <div class="elo-formula">Ожидаемый результат = 1 / (1 + 10<sup>(средний рейтинг противников − свой средний рейтинг) / 400</sup>)<br>Изменение рейтинга = 16 × (результат − ожидаемый результат)</div>
+            <p>При равных шансах каждый победитель получает 8 очков, а каждый проигравший теряет 8. Очки, победы и поражения записываются по конечной стороне. Политик, который стал злым и победил, получает столько же очков, сколько остальные победившие злые игроки.</p>
+            <p>Каждое отдельное место учитывается один раз. Если игрок занимает несколько мест, очки за них складываются. При расчёте среднего рейтинга команды каждое место Стула даёт 1500 очков. У Стула есть и собственный рейтинг в таблице. В нём учитывается результат каждого его места. Рассказчик и Монстрёнок без привязки к игроку не считаются местами игроков.</p>
 
             <h3>Новые игроки</h3>
-            <p>Отображаемый рейтинг нового игрока начинается с 1500 и пересчитывается после каждой игры. Только при расчёте среднего рейтинга команды за его первые три записанные игры используется <strong>1300</strong>, а затем — его текущий рейтинг. Игроки, отмеченные как опытные, освобождены от этого правила. Три игры считаются по всей истории, даже при фильтрации рейтинга.</p>
+            <p>В первых четырёх играх при расчёте среднего рейтинга команды из текущего рейтинга новичка вычитаются соответственно <strong>200, 150, 100 и 50</strong> очков. С пятой игры учитывается полный рейтинг. Личный рейтинг в таблице начинается с 1500 и меняется после каждой игры. У игроков, отмеченных как опытные, полный рейтинг учитывается с первой игры. Для этой поправки сыгранные партии считаются по всей истории, даже если в таблице включён фильтр.</p>
 
             <h3>Рейтинг ролей</h3>
             <p>У каждой роли свой отдельный Эло, который начинается с 1500. Для каждой игры сайт группирует <strong>начальные роли по сторонам, на которых игроки закончили игру</strong>, считает средний рейтинг разных ролей на каждой стороне и применяет ту же формулу с коэффициентом 32. Дальнейшая смена роли не заменяет начальную роль в статистике; победа или поражение роли определяется по конечной стороне игрока. Одновременные начальные роли учитываются.</p>

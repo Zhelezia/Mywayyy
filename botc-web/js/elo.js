@@ -3,15 +3,17 @@
  * Ported from botc_elo.py
  */
 
-import SITE_CONFIG from './site-config.js';
+import SITE_CONFIG from './site-config.js?v=player-elo-2026-11-18';
 import { experiencedPlayers } from './playerStatus.mjs';
+import { canonicalRoleInput } from './roleTranslations.mjs?v=monsta-2026-11-16';
 
 // Constants (from site-config.js)
 export const DEFAULT_RATING = SITE_CONFIG.defaultRating || 1500;
-export const ELO_K_FACTOR = SITE_CONFIG.kFactor || 32;
+export const ELO_K_FACTOR = SITE_CONFIG.kFactor || 16;
 export const MIN_GAMES_FOR_LEADERBOARD = SITE_CONFIG.minGamesForLeaderboard || 5;
-export const PROVISIONAL_RATING = 1300;
-export const PROVISIONAL_GAMES = 3;
+const NEWCOMER_DISCOUNTS = [200, 150, 100, 50];
+export const PROVISIONAL_RATING = DEFAULT_RATING - NEWCOMER_DISCOUNTS[0];
+export const PROVISIONAL_GAMES = NEWCOMER_DISCOUNTS.length;
 
 /**
  * Calculate expected score using ELO formula.
@@ -126,25 +128,25 @@ function teamAverage(teamList, players, trackedGamesBeforeThisGame) {
         return DEFAULT_RATING;
     }
     const sum = teamList.reduce((acc, p) => {
+        if (p.name === 'Стул') return acc + DEFAULT_RATING;
         const player = players[p.name];
-        const gamesBeforeThisGame = trackedGamesBeforeThisGame?.get(p.name) ?? player?.gamesOverall ?? 0;
-        const expectedRating = player && (experiencedPlayers.has(p.name) || gamesBeforeThisGame >= PROVISIONAL_GAMES)
-            ? player.currentRating
-            : PROVISIONAL_RATING;
-        return acc + expectedRating;
+        const gamesBeforeThisGame = trackedGamesBeforeThisGame?.get(p.name) ?? player.gamesOverall;
+        const discount = experiencedPlayers.has(p.name) ? 0 : (NEWCOMER_DISCOUNTS[gamesBeforeThisGame] ?? 0);
+        return acc + player.currentRating - discount;
     }, 0);
     return sum / teamList.length;
 }
 
 function ratingSeatsForPlayer(player) {
-    const assignments = Array.isArray(player.role_assignments) ? player.role_assignments : [];
-    const seats = assignments
-        .filter(assignment => assignment && (assignment.team === "Good" || assignment.team === "Evil"))
-        .map(assignment => ({ name: player.name, role: assignment.role || "", team: assignment.team }));
-    if (seats.length) return seats;
-    return player.team === "Good" || player.team === "Evil"
-        ? [{ name: player.name, role: player.role || "", team: player.team }]
-        : [];
+    const hasTeam = seat => seat?.team === "Good" || seat?.team === "Evil";
+    const assignments = Array.isArray(player.role_assignments) ? player.role_assignments.filter(hasTeam) : [];
+    const seats = assignments.length ? assignments : [player].filter(hasTeam);
+    return seats.map(seat => {
+        const role = seat.role || (Array.isArray(seat.roles) ? seat.roles.at(-1) : '') || '';
+        const rolesInPlay = Array.isArray(seat.roles_in_play) ? seat.roles_in_play : [];
+        const politician = [role, ...rolesInPlay].some(name => canonicalRoleInput(name) === 'Politician');
+        return { name: player.name, role, team: seat.team, expectedTeam: politician ? 'Good' : seat.team };
+    });
 }
 
 /**
@@ -187,10 +189,10 @@ export function recalcAll(gameLog, trackingHistory = gameLog) {
             }
         }
 
-        // Partition players by final team
-        const ratingSeats = game.players.flatMap(ratingSeatsForPlayer);
-        const teamGood = ratingSeats.filter(seat => seat.team === "Good");
-        const teamEvil = ratingSeats.filter(seat => seat.team === "Evil");
+        const seatsByPlayer = new Map(game.players.map(p => [p, ratingSeatsForPlayer(p)]));
+        const ratingSeats = [...seatsByPlayer.values()].flat();
+        const teamGood = ratingSeats.filter(seat => seat.expectedTeam === "Good");
+        const teamEvil = ratingSeats.filter(seat => seat.expectedTeam === "Evil");
 
         // Calculate team averages
         const trackedGamesBeforeThisGame = trackedGamesBeforeEachGame.get(game.game_id);
@@ -206,11 +208,9 @@ export function recalcAll(gameLog, trackingHistory = gameLog) {
         const resultEvil = game.winning_team === "Evil" ? 1 : 0;
 
         // Update each player's rating
-        for (const p of game.players) {
+        for (const [p, seats] of seatsByPlayer) {
             const player = players[p.name];
             const ratingBefore = player.currentRating;
-
-            const seats = ratingSeatsForPlayer(p);
             const delta = seats.reduce((sum, seat) => {
                 const expectation = seat.team === "Good" ? expGood : expEvil;
                 const result = seat.team === "Good" ? resultGood : resultEvil;

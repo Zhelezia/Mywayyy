@@ -27,7 +27,7 @@ const SITE_CONFIG = {
 
     // ELO settings
     defaultRating: 1500,    // Starting ELO for new players
-    kFactor: 32,            // How much each game affects ratings (higher = more volatile)
+    kFactor: 16,            // How much each game affects player ratings
 };
 
 // Export for use in other modules

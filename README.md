@@ -125,7 +125,7 @@ All settings are in `botc-web/js/site-config.js` (edit via the pencil icon on Gi
 | `communityName` | `Blood on the Clocktower` | Shown in the site header |
 | `minGamesForLeaderboard` | `1` | Min games to appear on leaderboard |
 | `defaultRating` | `1500` | Starting ELO for new players |
-| `kFactor` | `32` | ELO volatility (higher = bigger swings) |
+| `kFactor` | `16` | Player Elo volatility (higher = bigger swings) |
 
 ## Project structure
 
